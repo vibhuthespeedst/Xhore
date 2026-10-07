@@ -12,6 +12,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "curve": "vitest run tests/sanity.test.ts --disable-console-intercept",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
