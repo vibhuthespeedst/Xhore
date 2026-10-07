@@ -1,0 +1,14 @@
+{
+  "name": "xhore",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Workout avatar app: real gym sets grow a cartoon avatar's muscles.",
+  "workspaces": [
+    "engine"
+  ],
+  "scripts": {
+    "test": "npm run test --workspace @xhore/engine",
+    "test:watch": "npm run test:watch --workspace @xhore/engine",
+    "typecheck": "npm run typecheck --workspace @xhore/engine"
+  }
+}

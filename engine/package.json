@@ -1,0 +1,21 @@
+{
+  "name": "@xhore/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure growth engine: turns logged gym sets into avatar muscle size and definition. No I/O, no React, no clock.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
