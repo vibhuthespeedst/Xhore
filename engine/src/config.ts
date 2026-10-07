@@ -2,7 +2,7 @@ import type { Experience, TrustLevel } from './types.js'
 
 /**
  * Every tuning number in the growth engine lives in this one object, as
- * CLAUDE.md requires. Nothing else in the engine hard-codes a magic number,
+ * the project spec requires. Nothing else in the engine hard-codes a magic number,
  * so the whole feel of the game can be retuned from here.
  */
 export interface EngineConfig {

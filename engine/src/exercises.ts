@@ -1,7 +1,7 @@
 import type { RegionId } from './regions.js'
 
 /**
- * The exercise catalogue from CLAUDE.md. Each exercise names one main region
+ * The exercise catalogue from the project spec. Each exercise names one main region
  * at weight 1.0 plus any helper regions at a fraction of that. The weight is
  * how much of a set's intensity that region receives.
  */

@@ -3,7 +3,7 @@
  * itself touches neither, which is what keeps it free of I/O.
  *
  * Installing @types/node would cover these properly, but that is a new
- * dependency and CLAUDE.md says to ask first, so these declarations hold the
+ * dependency and the project ground rules say to ask first, so these hold the
  * line until then.
  */
 declare const console: {

@@ -4,7 +4,7 @@ import { REGION_IDS, isRegionId } from '../src/regions.js'
 import type { RegionId } from '../src/regions.js'
 
 /**
- * The exercise table transcribed straight from CLAUDE.md. Kept separate from
+ * The exercise table transcribed straight from the project spec. Kept separate from
  * the source so this is a real second reading of the spec, not a copy of the
  * implementation.
  */
