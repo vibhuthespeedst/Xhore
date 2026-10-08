@@ -33,6 +33,12 @@ Every decision made on this project, in the order it was made. Look here to find
 - Options seen so far: react-three-fiber with expo-gl, react-native-filament, react-native-wgpu.
 - Needed by: the start of the mobile app phase.
 
+**Q-6: Where do a player's usual weights and reps come from?**
+- Background: the engine judges effort by comparing each set with the player's usual weight or reps for that exercise. The spec does not say who supplies those usual numbers.
+- Options: the player types them in, or they are worked out from past sessions.
+- Recommendation for the prototype: treat the first weight logged for an exercise as the usual one. This matches D-019, where the first session defines what "usual" means.
+- Needed by: the set logging step of the prototype.
+
 ## Decided
 
 Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start this log, so their date reads "By 2026-10-07", the day of the first commit. Where the spec gives no reason, the Why column says so.
@@ -62,3 +68,4 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-021 | 2026-10-07 | The engine's optional rules each have an off switch: decay, definition, trust credit and double-speed regrowth. | Follows D-009. | Active |
 | D-022 | 2026-10-09 | The avatar will be 3D, and its muscles will visibly grow. How it gets built is still open (Q-1 and Q-2). | The owner's choice for the game. No further reason recorded. | Active |
 | D-023 | 2026-10-09 | Keep this decision log and a project flow file, and update both as part of each step. | So every decision and the state of the project can be looked up in one place. | Active |
+| D-024 | 2026-10-09 | The project flow file carries a map of the project: what each part and feature does, how the parts are kept separate, what data they hand to each other, and where to look for a given change. The map is updated whenever a part is added or changed. | So we can pinpoint where any future change belongs. | Active |
