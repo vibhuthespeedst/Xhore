@@ -14,6 +14,7 @@ Every decision made on this project, in the order it was made. Look here to find
 **Q-1: How do we build the 3D avatar?**
 - Recommendation: make our own body model with one "fully grown" shape per muscle region, and blend each shape in as that region's size goes up. This technique is called morph targets.
 - Why not a ready-made avatar service: Ready Player Me closed on 31 January 2026. Snap removed its Bitmoji kit for developers in March 2022. Avatar SDK still runs, but costs $800 a month and does not let us grow muscles one by one.
+- Fit with the requirements: D-022 (muscles grow one by one) and D-025 (free at the start) rule out the paid services, which leaves this approach.
 - Needed by: the avatar step of the prototype.
 
 **Q-2: Does a 3D placeholder replace the SVG placeholder in the prototype?**
@@ -21,23 +22,38 @@ Every decision made on this project, in the order it was made. Look here to find
 - What it changes: replaces D-017 and adds two dependencies, `three` and `@react-three/fiber`.
 - Needed by: the avatar step of the prototype.
 
-**Q-3: Where does the final 3D art come from?**
-- Options: hire a 3D artist to sculpt a cartoon body with the 19 muscle shapes, or start from MPFB (a free Blender add-on) and sculpt the shapes on top.
-- Needed by: after the prototype has shown the core loop is fun.
+**Q-3: Where does the 3D body come from?**
+- For the start, D-025 means the free route. Recommendation: MPFB, a free add-on for Blender whose output is free for commercial use. It makes a realistic human body with a built-in muscle shape, which we split into our 19 regions.
+- What it needs: Blender installed on the owner's computer. Blender is free, but installing it needs the owner's OK.
+- Later, if the game does well: hire a 3D artist to restyle or replace the body. The file format stays the same, so the code does not change.
+- Needed by: after the code-built placeholder is working.
 
 **Q-4: Do players get a face made from a selfie?**
 - Recommendation: treat it as a separate optional feature for later. Fitting a ready-made head onto our muscle body is not straightforward.
 - Needed by: not before the mobile app.
 
-**Q-5: Which 3D drawing library do we use on phones?**
-- Options seen so far: react-three-fiber with expo-gl, react-native-filament, react-native-wgpu.
-- Needed by: the start of the mobile app phase.
+**Q-5: What do we build the real 3D game in?**
+- Recommendation: Unity. It is free until the project passes $200,000 in revenue or funding, it is the most used engine for phone games, it runs well on mid-range Android phones, and it has the largest pool of people to hire.
+- Other options: Unreal, which Tekken 8 uses. It has the best graphics and is free until a game earns $1 million, but it is heavy on phones. Godot, which is free forever and can sit inside an Expo app, but has fewer people to hire. Staying with web 3D, which is fine for an avatar viewer and simple replays but not for a full fighting game.
+- What carries over whichever we pick: the 3D body file and the growth engine's numbers.
+- Needed by: the start of the mobile app phase. The web prototype does not depend on it.
 
 **Q-6: Where do a player's usual weights and reps come from?**
 - Background: the engine judges effort by comparing each set with the player's usual weight or reps for that exercise. The spec does not say who supplies those usual numbers.
 - Options: the player types them in, or they are worked out from past sessions.
 - Recommendation for the prototype: treat the first weight logged for an exercise as the usual one. This matches D-019, where the first session defines what "usual" means.
 - Needed by: the set logging step of the prototype.
+
+**Q-7: Which game do we build first: one-on-one fighting, 11-a-side football, or an open world?**
+- Recommendation: one-on-one fighting, in the style of Tekken.
+- Why: the camera is close, so the muscles people earned are easy to see. It needs two characters and one arena, where football needs 22 players, team behaviour and ball physics, and an open world needs a whole city. It also fits couples and friends, who compete one against one.
+- Football and other sports: possible later as extra modes that reuse the same avatar (D-027). An open world is the most expensive kind of game to make and is not a starting point.
+- Needed by: before work starts on the fight replay.
+
+**Q-8: Is the fight played with controls, or watched?**
+- Background: D-016 says points from the gym week decide the winner and the fight is a replay. A Tekken-style game is normally played with controls, where the more skilled player wins.
+- Recommendation: keep D-016 and build the fight as a replay you watch first. A played mode can come later, where gym stats set the fighter's power and you fight a computer-controlled copy of your opponent's avatar. That avoids live online fighting, which is one of the hardest things to build in games.
+- Needed by: before work starts on the fight replay.
 
 ## Decided
 
@@ -69,3 +85,6 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-022 | 2026-10-09 | The avatar will be 3D, and its muscles will visibly grow. How it gets built is still open (Q-1 and Q-2). | The owner's choice for the game. No further reason recorded. | Active |
 | D-023 | 2026-10-09 | Keep this decision log and a project flow file, and update both as part of each step. | So every decision and the state of the project can be looked up in one place. | Active |
 | D-024 | 2026-10-09 | The project flow file carries a map of the project: what each part and feature does, how the parts are kept separate, what data they hand to each other, and where to look for a given change. The map is updated whenever a part is added or changed. | So we can pinpoint where any future change belongs. | Active |
+| D-025 | 2026-10-09 | The 3D avatar must cost nothing to build and use at the start. Paid tools or artists can be considered later if the game does well. | The owner's requirement. | Active |
+| D-026 | 2026-10-09 | The look to aim for is a fighting game such as Tekken or WWE, with good graphics, rather than a simple cartoon. | The owner's choice. The game is about people competing by fighting. | Active |
+| D-027 | 2026-10-09 | The avatar and the game are built so that other modes can be added later, such as football, other sports or an open world. | The owner wants room to grow the game if it does well. | Active |

@@ -6,7 +6,7 @@ What we are building, the order we are building it in, how the parts connect, an
 
 *Last updated: 2026-10-09*
 
-Phase 0, the web prototype, is in progress. The growth engine is built and all 172 of its automated tests pass. The prototype page has not been started. The avatar step is waiting on two open questions, Q-1 and Q-2 in [Decision.md](Decision.md).
+Phase 0, the web prototype, is in progress. The growth engine is built and all 172 of its automated tests pass. The prototype page has not been started. The owner has set what the avatar must be: 3D, growing muscle by muscle, free at the start, with a fighting-game look. How to build it is waiting on a yes to two open questions, Q-1 and Q-2 in [Decision.md](Decision.md).
 
 ## The road map
 
@@ -32,7 +32,7 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 6 | Show an avatar that grows, with front and back views | Waiting on a decision | Q-1 and Q-2 |
 | 7 | Skip ahead a week | Not started | |
 | 8 | Score the weekly match | Not started | The rules are in the spec but are not built yet |
-| 9 | Replay a fight between two avatars | Not started | |
+| 9 | Replay a fight between two avatars | Not started | Needs Q-7 and Q-8 settled |
 
 ## The parts and how they connect
 
@@ -98,6 +98,17 @@ None of these are built yet. Each gets its own folder inside `prototype/` when i
 | Weekly match | Scores a player's week out of 100 for plan completion, effort and personal bests. | Week report, sessions planned and done | Match points | 8 |
 | Fight replay | Plays a repeatable fight between two avatars. Points decide the winner, and muscles only shape the style. | Match points, two avatar states | Nothing, it only displays | 9 |
 
+### Game modes, now and later
+
+Every mode is a separate feature that only reads the avatar state. Adding a mode never changes the growth engine, and a mode can be switched off without breaking the rest.
+
+| Mode | What it is | Status |
+| --- | --- | --- |
+| Fight replay | A one-on-one fight you watch, decided by the week's points. | Planned for Phase 0 (step 9) |
+| Played fighting | A one-on-one fight you control. | Idea (Q-8) |
+| Football and other sports | Team matches that reuse the same avatars. | Idea for later (Q-7) |
+| Open world | A shared world to walk around in. | Idea for later (Q-7) |
+
 ### The loop, from a set to a fight
 
 1. **You log your sets.** Each set is an exercise, a number of reps and a weight.
@@ -140,7 +151,7 @@ Type these in the terminal from the project folder.
 
 Newest first.
 
-- **2026-10-09:** Researched ways to add a 3D avatar. The ready-made avatar services either closed or cost too much, so the proposal is our own body model (Q-1 and Q-2). Started the decision log and this file, then added the map of parts to this file. Writing the map showed that nobody has decided where a player's usual weights come from, so that is now Q-6.
+- **2026-10-09:** Researched ways to add a 3D avatar. The ready-made avatar services either closed or cost too much, so the proposal is our own body model (Q-1 and Q-2). Started the decision log and this file, then added the map of parts to this file. Writing the map showed that nobody has decided where a player's usual weights come from, so that is now Q-6. The owner then set the avatar requirements: free at the start, a fighting-game look, and room for other game modes (D-025 to D-027). Compared game engines and game modes. The recommendations are Unity for the real game (Q-5), one-on-one fighting first (Q-7) and a watched replay before a played fight (Q-8).
 - **2026-10-07:** Set up the repository with the `engine` workspace. Built the growth engine rules and a test for every rule. A beginner doing 9 hard sets a week reaches size 50 in week 15, 80 in week 34 and 90 in week 49, which matches the targets in the spec.
 
 ## Next up
