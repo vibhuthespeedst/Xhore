@@ -1,0 +1,159 @@
+:root {
+  --bg: #0b0e13;
+  --bg-glow: #1a2230;
+  --panel: #141a22;
+  --panel-raised: #1b222c;
+  --line: #2a3340;
+  --text: #e8eef5;
+  --text-muted: #8d9aab;
+  --accent: #ff6b35;
+  --accent-soft: rgba(255, 107, 53, 0.16);
+  --definition: #2ec4b6;
+  --radius: 14px;
+  --radius-small: 8px;
+
+  color-scheme: dark;
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 700px at 30% 0%, var(--bg-glow), var(--bg) 70%) fixed;
+  color: var(--text);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 20px 24px;
+  gap: 16px;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-tag {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 16px;
+}
+
+.panel {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.panel-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.panel-text {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-raised);
+  cursor: pointer;
+  text-transform: capitalize;
+  transition:
+    border-color 120ms,
+    background 120ms;
+}
+
+.chip:hover {
+  border-color: var(--text-muted);
+}
+
+.chip-on,
+.chip-on:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chip:focus-visible,
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.region-cell {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: var(--radius-small);
+  background: var(--panel-raised);
+}
+
+.region-name {
+  color: var(--text-muted);
+}
+
+.region-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}

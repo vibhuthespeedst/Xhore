@@ -6,14 +6,14 @@ What we are building, the order we are building it in, how the parts connect, an
 
 *Last updated: 2026-10-09*
 
-Phase 0, the web prototype, is in progress. The growth engine is built and all 172 of its automated tests pass. The prototype page has not been started. The design for the 3D avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md). Building starts once the owner gives the first two OKs below.
+Phase 0, the web prototype, is in progress. The growth engine is built and all 172 of its automated tests pass. The prototype page now runs and reads its numbers from the growth engine. The design for the 3D avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md). The avatar is being built next.
 
 ## Waiting on the owner
 
+The owner gave the OK for three.js and for Blender with MPFB on 2026-10-09 (D-036).
+
 | What | Why it is needed | Needed for |
 | --- | --- | --- |
-| OK to add the 3D library three.js to the project | It draws the avatar and the games. It is free. The owner's rule is that new libraries are asked about first. | Step 6 |
-| OK to download Blender and the MPFB add-on onto the E: drive | They build the real 3D body. Both are free. Blender is about 300 to 400 MB to download and under 1 GB on disk. It runs from its own folder and is not installed into Windows. | Step 7 |
 | A free Adobe account, later | The largest free set of fight animations, Mixamo, needs a sign-in. Only the owner can do that. | Step 12 |
 
 ## The road map
@@ -35,10 +35,10 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 1 | Set up the repository and workspaces | Done 2026-10-07 | |
 | 2 | Build the growth engine rules | Done 2026-10-07 | |
 | 3 | Write tests for every engine rule | Done 2026-10-07 | 172 tests passing when checked on 2026-10-09 |
-| 4 | Create the prototype page (Vite, React, TypeScript) | Not started | |
+| 4 | Create the prototype page (Vite, React, TypeScript) | Done 2026-10-09 | `npm run dev` opens it |
 | 5 | Log sets on the page | Not started | Needs Q-6 settled |
-| 6 | Show a 3D avatar that grows, using a stand-in body built in code | Not started | Needs the owner's OK to add three.js |
-| 7 | Build the real 3D body and swap it in | Not started | Needs the owner's OK to download Blender (Q-3) |
+| 6 | Show a 3D avatar that grows, using a stand-in body built in code | Not started | |
+| 7 | Build the real 3D body and swap it in | Not started | Blender is downloaded to `E:\XhoreTools` and waiting to be unpacked |
 | 8 | Skip ahead a week | Not started | |
 | 9 | Score the weekly match | Not started | The rules are in the spec but are not built yet |
 | 10 | Add the game contract and the game list | Not started | This is what lets a game be switched off or deleted safely |
@@ -58,7 +58,7 @@ This is the map of the project. Each part does one job and is kept apart from th
 | Growth engine | [engine/](engine/) | The rules of the game. It turns logged sets into muscle size and definition, and has no screen of its own. | Built |
 | Shared kits | `shared/avatar-kit/`, `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | Planned |
 | Games | `games/arena-fight/` | One folder per game. Each is a plug-in that can be removed. The first is the arena fighter. | Planned |
-| Prototype page | `prototype/` | The web page for trying everything. It shows things and collects what you type. | Not started |
+| Prototype page | [prototype/](prototype/) | The web page for trying everything. It shows things and collects what you type. | Started. The page runs and reads the engine. |
 | Mobile app | `app/` | The real Android and iOS app. | Later |
 | Server | `functions/` | The online side, built with Firebase. | Later |
 
@@ -166,14 +166,16 @@ Type these in the terminal from the project folder.
 | --- | --- |
 | `npm test` | Runs every engine test. All of them should say "passed". |
 | `npm run curve` | Prints a week-by-week table of how one muscle grows for a beginner. |
-
-`npm run dev`, which opens the prototype page, will work once step 4 is done.
+| `npm run dev` | Starts the prototype page. It prints an address, normally `http://localhost:5173`. Open that in your browser. Press `Ctrl+C` in the terminal to stop it. |
+| `npm run typecheck` | Checks all the code for mistakes without running it. No output after the headings means no mistakes. |
 
 ## Progress log
 
 Newest first.
 
 - **2026-10-09:**
+  - The owner said yes to three.js and to Blender with MPFB, and asked to start with the avatar (D-036). Blender 4.5.14 was downloaded to `E:\XhoreTools`, outside the project (D-037).
+  - Step 4 done: the prototype page exists. It shows the 19 muscle regions and their starting sizes, read straight from the growth engine, and the numbers change when you pick a different experience level. Checked by opening the page in a browser and clicking the buttons.
   - Researched ways to add a 3D avatar. The ready-made avatar services either closed or cost too much, so we build our own body.
   - Started the decision log and this file, then added the map of parts. Writing the map showed that nobody has decided where a player's usual weights come from, so that is now Q-6.
   - The owner set the avatar requirements: free at the start, a fighting-game look, and room for other game modes (D-025 to D-027).
@@ -183,7 +185,6 @@ Newest first.
 
 ## Next up
 
-1. The owner gives the first two OKs under "Waiting on the owner".
-2. Create the prototype page (step 4).
+1. Add the avatar screen with the stand-in body (step 6). The owner asked for the avatar first, so it comes before set logging.
+2. Build the real 3D body with Blender and swap it in (step 7).
 3. Settle Q-6, then add set logging to the page (step 5).
-4. Add the avatar screen with the stand-in body (step 6).
