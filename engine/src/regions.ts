@@ -29,6 +29,32 @@ export const REGION_IDS = [
 
 export type RegionId = (typeof REGION_IDS)[number]
 
+/**
+ * Names for showing a region to a person. The ids above stay the stable keys
+ * in stored data; these can be reworded freely.
+ */
+export const REGION_LABELS: Readonly<Record<RegionId, string>> = {
+  biceps: 'Biceps',
+  triceps: 'Triceps',
+  forearms: 'Forearms',
+  delt_front: 'Front delts',
+  delt_side: 'Side delts',
+  delt_rear: 'Rear delts',
+  chest_upper: 'Upper chest',
+  chest_mid: 'Mid chest',
+  chest_lower: 'Lower chest',
+  lats: 'Lats',
+  traps: 'Traps',
+  mid_back: 'Mid back',
+  lower_back: 'Lower back',
+  abs: 'Abs',
+  obliques: 'Obliques',
+  quads: 'Quads',
+  hamstrings: 'Hamstrings',
+  glutes: 'Glutes',
+  calves: 'Calves',
+}
+
 export function isRegionId(value: string): value is RegionId {
   return (REGION_IDS as readonly string[]).includes(value)
 }

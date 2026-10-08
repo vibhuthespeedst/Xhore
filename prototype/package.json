@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@xhore/avatar-kit": "*",
     "@xhore/engine": "*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

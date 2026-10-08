@@ -6,7 +6,7 @@ What we are building, the order we are building it in, how the parts connect, an
 
 *Last updated: 2026-10-09*
 
-Phase 0, the web prototype, is in progress. The growth engine is built and all 172 of its automated tests pass. The prototype page now runs and reads its numbers from the growth engine. The design for the 3D avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md). The avatar is being built next.
+Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a 3D avatar whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body is a stand-in made of simple shapes for now. All 250 automated tests pass. The design for the avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md). The real 3D body is next.
 
 ## Waiting on the owner
 
@@ -37,7 +37,7 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 3 | Write tests for every engine rule | Done 2026-10-07 | 172 tests passing when checked on 2026-10-09 |
 | 4 | Create the prototype page (Vite, React, TypeScript) | Done 2026-10-09 | `npm run dev` opens it |
 | 5 | Log sets on the page | Not started | Needs Q-6 settled |
-| 6 | Show a 3D avatar that grows, using a stand-in body built in code | Not started | |
+| 6 | Show a 3D avatar that grows, using a stand-in body built in code | Done 2026-10-09 | Driven by a quick simulator until set logging exists |
 | 7 | Build the real 3D body and swap it in | Not started | Blender is downloaded to `E:\XhoreTools` and waiting to be unpacked |
 | 8 | Skip ahead a week | Not started | |
 | 9 | Score the weekly match | Not started | The rules are in the spec but are not built yet |
@@ -56,9 +56,10 @@ This is the map of the project. Each part does one job and is kept apart from th
 | Part | Folder | Its one job | Status |
 | --- | --- | --- | --- |
 | Growth engine | [engine/](engine/) | The rules of the game. It turns logged sets into muscle size and definition, and has no screen of its own. | Built |
-| Shared kits | `shared/avatar-kit/`, `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | Planned |
+| Avatar kit | [shared/avatar-kit/](shared/avatar-kit/) | Shows a 3D body with every muscle at its score. Every screen and game uses it. It never works a score out. | Built, with the stand-in body |
+| Game contract | `shared/game-api/` | The small contract every game follows. | Planned |
 | Games | `games/arena-fight/` | One folder per game. Each is a plug-in that can be removed. The first is the arena fighter. | Planned |
-| Prototype page | [prototype/](prototype/) | The web page for trying everything. It shows things and collects what you type. | Started. The page runs and reads the engine. |
+| Prototype page | [prototype/](prototype/) | The web page for trying everything. It shows things and collects what you type. | Started. It has the avatar screen, a quick simulator and a muscle list. |
 | Mobile app | `app/` | The real Android and iOS app. | Later |
 | Server | `functions/` | The online side, built with Firebase. | Later |
 
@@ -90,15 +91,28 @@ All of these are built. Their tests live in [engine/tests/](engine/tests/), in f
 | Data shapes | Describes exactly what a session, an avatar and a week's report contain. | [types.ts](engine/src/types.ts) |
 | Helpers | Small date and number tools used by the parts above. | [time.ts](engine/src/time.ts), [math.ts](engine/src/math.ts) |
 
+### Inside the avatar kit
+
+All of these are built. Their tests live in [shared/avatar-kit/tests/](shared/avatar-kit/tests/).
+
+| Part | What it does | File |
+| --- | --- | --- |
+| Body contract | Says what any body must be able to do: show scores, change skin tone, light up a region. The stand-in and the real body both follow it, which is why one can replace the other. | [body.ts](shared/avatar-kit/src/body.ts) |
+| Scores | Turns a 0 to 100 score into a 0 to 1 strength for blending shapes. | [scores.ts](shared/avatar-kit/src/scores.ts) |
+| Stand-in shapes | The stand-in body as a list of numbers: where each shape sits, and how big it is at a score of 0 and at 100. | [standInLayout.ts](shared/avatar-kit/src/standInLayout.ts) |
+| Stand-in body | Builds the body from that list and reshapes it when scores change. | [standInBody.ts](shared/avatar-kit/src/standInBody.ts) |
+| Viewer | Puts a body on screen: lights, floor ring, a camera you can drag, and smooth easing when scores change. | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
+| Front door | The only file other parts import from. It also holds the one call that loads the body. | [index.ts](shared/avatar-kit/src/index.ts) |
+
 ### What gets handed from part to part
 
 These pieces of data are the only way the parts talk to each other.
 
 | Data | What it holds | Made by | Read by | Exists today |
 | --- | --- | --- | --- | --- |
-| Session | One gym visit: when it happened, whether it was self-reported or friend-confirmed, and its sets (exercise, reps, weight). | Set logging | Growth engine | Shape defined, nothing makes it yet |
+| Session | One gym visit: when it happened, whether it was self-reported or friend-confirmed, and its sets (exercise, reps, weight). | The quick simulator today, set logging later | Growth engine | Yes, simulated ones |
 | Baselines | Your usual weight or reps for each exercise, used to judge effort. | Not decided yet (Q-6) | Growth engine | Shape defined, nothing makes it yet |
-| Avatar state | For each of the 19 regions: size, definition, starting size, best size reached and when it was last trained. It also keeps the last 4 weeks of hard-set counts, which definition needs. | Growth engine only | Avatar view, games | Yes |
+| Avatar state | For each of the 19 regions: size, definition, starting size, best size reached and when it was last trained. It also keeps the last 4 weeks of hard-set counts, which definition needs. | Growth engine only | Avatar view, muscle list, games | Yes |
 | Week report | What one week did: sets counted and skipped, average intensity, and each region's size and definition before and after. | Growth engine only | Weekly match, the page | Yes |
 | Match points | A player's score for the week, 0 to 100. | Weekly match | The page, games | Not yet |
 | Player snapshot | A read-only copy of each player's avatar state and match points, handed to a game when it starts. | The game list | A game | Not yet |
@@ -106,15 +120,17 @@ These pieces of data are the only way the parts talk to each other.
 
 ### Features on the page
 
-None of these are built yet. Each gets its own folder inside `prototype/` when its step starts.
+Each feature has its own folder inside [prototype/src/features/](prototype/src/features/). No feature imports another. The page, [App.tsx](prototype/src/App.tsx), holds the avatar and passes it to each one.
 
-| Feature | What it does | Reads | Hands on | Step |
+| Feature | What it does | Reads | Hands on | Status |
 | --- | --- | --- | --- | --- |
-| Set logging | You pick an exercise, enter reps and weight, and mark the session as self-reported or friend-confirmed. | What you type | Sessions | 5 |
-| Avatar view | Shows the 3D avatar with each region at its current size. You can turn it to see the front and back. It uses the avatar kit. | Avatar state | Nothing, it only displays | 6 and 7 |
-| Skip a week | Moves time forward one week and asks the engine to process it. | Sessions, avatar state | New avatar state, week report | 8 |
-| Weekly match | Scores a player's week out of 100 for plan completion, effort and personal bests. | Week report, sessions planned and done | Match points | 9 |
-| Game list | Shows a button for each game that is switched on, and starts the one you pick. | Avatar state, match points | A player snapshot for the game | 10 |
+| Avatar view | Shows the 3D avatar with each region at its current size. You can drag it round, jump to the front, side or back, and pick a skin tone. It uses the avatar kit. | Avatar state, which region to light up | Nothing, it only displays | Built ([avatar-view/](prototype/src/features/avatar-view/)). The real body arrives in step 7. |
+| Muscle list | Lists the 19 regions with bars for size and definition, and what the last skip changed. Pointing at a row lights that muscle up on the body. | Avatar state | Which region is pointed at | Built ([muscle-readout/](prototype/src/features/muscle-readout/)) |
+| Quick simulator | A temporary stand-in for set logging. You pick a starting level and a weekly routine, then skip 1, 4 or 12 weeks. It invents the sessions and the growth engine does the maths. | What you click | Sessions for the engine, then the new avatar state | Built ([quick-sim/](prototype/src/features/quick-sim/)). To be replaced by steps 5 and 8. |
+| Set logging | You pick an exercise, enter reps and weight, and mark the session as self-reported or friend-confirmed. | What you type | Sessions | Step 5 |
+| Skip a week | Moves time forward one week and asks the engine to process it. | Sessions, avatar state | New avatar state, week report | Step 8 |
+| Weekly match | Scores a player's week out of 100 for plan completion, effort and personal bests. | Week report, sessions planned and done | Match points | Step 9 |
+| Game list | Shows a button for each game that is switched on, and starts the one you pick. | Avatar state, match points | A player snapshot for the game | Step 10 |
 
 ### Games
 
@@ -135,7 +151,7 @@ Every game is a separate plug-in that only reads the avatar state. Adding a game
 4. **The weekly match is scored.** Each player gets 0 to 100 points for plan completion, effort and personal bests.
 5. **The fight replay plays.** Points decide who wins. The avatars' muscles only shape how the fight looks.
 
-Only step 2 is built today. Steps 1, 3, 4 and 5 are still to build.
+Steps 2 and 3 are built today. Step 1 is simulated for now, and steps 4 and 5 are still to build.
 
 ### Where to look when something needs changing
 
@@ -151,7 +167,14 @@ Only step 2 is built today. Steps 1, 3, 4 and 5 are still to build.
 | Change how definition is worked out | [definition.ts](engine/src/definition.ts) |
 | Change what a saved avatar stores | [types.ts](engine/src/types.ts). Add fields only, never rename or remove them (D-008). |
 | Find out why a test failed | [engine/tests/](engine/tests/), in the file named after the rule |
-| Change how the avatar looks | Not built yet (steps 6 and 7). It will live in `shared/avatar-kit/`. |
+| Change the stand-in body's shape or proportions | [standInLayout.ts](shared/avatar-kit/src/standInLayout.ts). Every shape is one line of numbers. |
+| Change how definition looks, or the highlight colour | The settings at the top of [standInBody.ts](shared/avatar-kit/src/standInBody.ts) |
+| Change the lighting, the camera or the floor ring | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
+| Change the skin tones on offer, or the view buttons | [AvatarView.tsx](prototype/src/features/avatar-view/AvatarView.tsx) |
+| Change what a simulated week of training contains | [simulate.ts](prototype/src/features/quick-sim/simulate.ts) |
+| Change a muscle's display name | `REGION_LABELS` in [regions.ts](engine/src/regions.ts) |
+| Change the page's colours | The list at the top of [styles.css](prototype/src/styles.css) |
+| Swap in the real 3D body | Not built yet (step 7). It will load inside `loadAvatarBody` in [index.ts](shared/avatar-kit/src/index.ts). |
 | Change match scoring | Not built yet (step 9) |
 | Switch a game off, or remove one | Not built yet (step 10). It will be the game list on the page. |
 | Change a fighting move or a style | Not built yet (step 11). It will live in `games/arena-fight/content/`. |
@@ -164,7 +187,7 @@ Type these in the terminal from the project folder.
 
 | Command | What it does |
 | --- | --- |
-| `npm test` | Runs every engine test. All of them should say "passed". |
+| `npm test` | Runs every test: 173 for the growth engine, then 77 for the avatar kit. Both groups should say "passed". |
 | `npm run curve` | Prints a week-by-week table of how one muscle grows for a beginner. |
 | `npm run dev` | Starts the prototype page. It prints an address, normally `http://localhost:5173`. Open that in your browser. Press `Ctrl+C` in the terminal to stop it. |
 | `npm run typecheck` | Checks all the code for mistakes without running it. No output after the headings means no mistakes. |
@@ -175,6 +198,7 @@ Newest first.
 
 - **2026-10-09:**
   - The owner said yes to three.js and to Blender with MPFB, and asked to start with the avatar (D-036). Blender 4.5.14 was downloaded to `E:\XhoreTools`, outside the project (D-037).
+  - Step 6 done: the page shows a 3D avatar that grows. The avatar kit builds a stand-in body from simple shapes, one or more per muscle region. Checked in a browser: 12 weeks of calf raises took calves from 10 to 45.1 and changed no other muscle, and 60 weeks of every exercise produced a visibly muscular body. Dragging, the front, side and back buttons, skin tones and the muscle highlight all work. Three things were fixed after looking at it: the untrained body was too thin, the back view was too dark, and the camera could go under the floor.
   - Step 4 done: the prototype page exists. It shows the 19 muscle regions and their starting sizes, read straight from the growth engine, and the numbers change when you pick a different experience level. Checked by opening the page in a browser and clicking the buttons.
   - Researched ways to add a 3D avatar. The ready-made avatar services either closed or cost too much, so we build our own body.
   - Started the decision log and this file, then added the map of parts. Writing the map showed that nobody has decided where a player's usual weights come from, so that is now Q-6.
@@ -185,6 +209,6 @@ Newest first.
 
 ## Next up
 
-1. Add the avatar screen with the stand-in body (step 6). The owner asked for the avatar first, so it comes before set logging.
-2. Build the real 3D body with Blender and swap it in (step 7).
-3. Settle Q-6, then add set logging to the page (step 5).
+1. Build the real 3D body with Blender and swap it in (step 7). The owner asked for the avatar first, so this comes before set logging.
+2. Settle Q-6, then add set logging to the page (step 5).
+3. Skip ahead a week (step 8), which together with set logging replaces the quick simulator.

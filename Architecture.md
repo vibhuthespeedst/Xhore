@@ -2,7 +2,7 @@
 
 How the project is put together, and the plan for the 3D avatar and the first game. [Decision.md](Decision.md) records why each choice was made. [ProjectFlow.md](ProjectFlow.md) records what is built so far. This file describes the design we are building toward.
 
-*Last updated: 2026-10-09. Only the growth engine exists today. Everything else here is the plan.*
+*Last updated: 2026-10-09. Built so far: the growth engine, the prototype page, and the avatar kit with its stand-in body. Everything else here is the plan.*
 
 ## 1. What shaped this design
 
@@ -21,9 +21,9 @@ Each layer is built on the ones below it in this table, never the other way roun
 
 | Layer | Folder | Its job | Status |
 | --- | --- | --- | --- |
-| Shell | `prototype/` now, `app/` later | The screens: logging sets, the avatar screen, the weekly match, and the list of games. | Not started |
+| Shell | [prototype/](prototype/) now, `app/` later | The screens: logging sets, the avatar screen, the weekly match, and the list of games. | Started: the avatar screen exists |
 | Games | `games/arena-fight/`, more later | One folder per game. Each is a plug-in that can be removed. | Planned |
-| Shared kits | `shared/avatar-kit/`, `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | Planned |
+| Shared kits | [shared/avatar-kit/](shared/avatar-kit/), `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | The avatar kit is built with the stand-in body. The game contract is planned. |
 | Rules | [engine/](engine/) | The growth maths. Weekly match scoring joins it later in its own folder. It has no screen. | Growth is built |
 | Server | `functions/` | The online side. It reuses the rules. | Later |
 
@@ -33,11 +33,11 @@ Each layer is built on the ones below it in this table, never the other way roun
 | --- | --- | --- |
 | `engine` | Nothing | Everything else |
 | `shared/game-api` | `engine`, for the shape of the data only | Any game, the shell |
-| `shared/avatar-kit` | `engine`, for the shape of the data only, and the 3D library | Any game, the shell |
+| `shared/avatar-kit` | `engine`, for the list of regions and the shape of the data only, and the 3D library | Any game, the shell |
 | A game in `games/` | `engine` and the shared kits | Another game, the shell |
 | The shell | `engine`, the shared kits, and games through the game list only | The inside of any game |
 
-An automated test checks these rules and fails if any file breaks them.
+An automated test will check these rules and fail if any file breaks them. It is built together with the game contract.
 
 ### The 3D technology
 
@@ -181,18 +181,21 @@ For whoever writes the script.
 
 ### 5.3 The avatar kit
 
-`shared/avatar-kit/` is the only code that knows how to show an avatar. Every game and screen uses it to:
+[shared/avatar-kit/](shared/avatar-kit/) is the only code that knows how to show an avatar. Every game and screen uses it to:
 
-- load the body file,
+- load the body,
 - apply an avatar's scores to it,
-- play a named animation,
-- set the skin tone.
+- set the skin tone,
+- light up one region, so a person can see where it is,
+- play a named animation (not built yet).
 
 It never works out a score. It only displays the ones it is given.
 
-Muscles change once a week, so before a fight the kit works the muscle shapes into the body once. A fight then costs the same as animating a plain body.
+Every body follows one contract, so screens and games ask the kit for "the body" and never name which kind (D-040). Today the kit hands back a stand-in body built in code from simple shapes, one or more per region. When the real body file exists, the same call hands that back instead, and no screen or game changes.
 
-Until the real body file exists, the kit shows a stand-in body built in code from simple shapes, one per region. Games cannot tell the difference, so swapping in the real file changes no game code.
+The kit also has a ready-made viewer: lights, a floor ring, a camera that can be dragged round the body, and easing so that growth is seen happening. The avatar screen uses it. A game brings its own scene and uses only the body.
+
+Muscles change once a week, so before a fight the kit will work the muscle shapes into the real body once. A fight then costs the same as animating a plain body.
 
 ### 5.4 Animations
 

@@ -8,7 +8,7 @@ export type { EngineConfig, ConfigOverrides } from './config.js'
 export { DEFAULT_CONFIG, makeConfig } from './config.js'
 
 export type { RegionId } from './regions.js'
-export { REGION_IDS, isRegionId, regionRecord } from './regions.js'
+export { REGION_IDS, REGION_LABELS, isRegionId, regionRecord } from './regions.js'
 
 export type { Exercise, ExerciseId } from './exercises.js'
 export { EXERCISES, EXERCISE_IDS, getExercise, isExerciseId } from './exercises.js'

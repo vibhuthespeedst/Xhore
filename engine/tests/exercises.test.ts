@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EXERCISES, EXERCISE_IDS } from '../src/exercises.js'
-import { REGION_IDS, isRegionId } from '../src/regions.js'
+import { REGION_IDS, REGION_LABELS, isRegionId } from '../src/regions.js'
 import type { RegionId } from '../src/regions.js'
 
 /**
@@ -58,6 +58,13 @@ describe('regions', () => {
         'triceps',
       ].sort(),
     )
+  })
+
+  it('gives every region its own display name', () => {
+    expect(Object.keys(REGION_LABELS).sort()).toEqual([...REGION_IDS].sort())
+    const labels = REGION_IDS.map((regionId) => REGION_LABELS[regionId])
+    expect(labels.every((label) => label.trim().length > 0)).toBe(true)
+    expect(new Set(labels).size).toBe(REGION_IDS.length)
   })
 })
 

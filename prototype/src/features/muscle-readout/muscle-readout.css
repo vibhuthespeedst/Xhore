@@ -1,0 +1,109 @@
+.readout-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.legend {
+  display: flex;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.legend-size,
+.bar-size {
+  background: var(--accent);
+}
+
+.legend-definition,
+.bar-definition {
+  background: var(--definition);
+}
+
+.muscle-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.muscle-row {
+  display: grid;
+  grid-template-columns: 98px minmax(0, 1fr) 84px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: var(--radius-small);
+  cursor: default;
+}
+
+.muscle-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.muscle-row-on {
+  background: var(--accent-soft);
+}
+
+.muscle-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bar {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--panel-raised);
+}
+
+.bar-thin {
+  height: 4px;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 500ms ease-out;
+}
+
+.muscle-numbers {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.muscle-size {
+  font-weight: 700;
+}
+
+.change {
+  font-size: 0.78rem;
+}
+
+.change-up {
+  color: #5fd38d;
+}
+
+.change-down {
+  color: #f08a8a;
+}
