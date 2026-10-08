@@ -11,32 +11,17 @@ Every decision made on this project, in the order it was made. Look here to find
 
 ## Waiting on a decision
 
-**Q-1: How do we build the 3D avatar?**
-- Recommendation: make our own body model with one "fully grown" shape per muscle region, and blend each shape in as that region's size goes up. This technique is called morph targets.
-- Why not a ready-made avatar service: Ready Player Me closed on 31 January 2026. Snap removed its Bitmoji kit for developers in March 2022. Avatar SDK still runs, but costs $800 a month and does not let us grow muscles one by one.
-- Fit with the requirements: D-022 (muscles grow one by one) and D-025 (free at the start) rule out the paid services, which leaves this approach.
-- Needed by: the avatar step of the prototype.
-
-**Q-2: Does a 3D placeholder replace the SVG placeholder in the prototype?**
-- Recommendation: yes. Build the placeholder body in code from simple 3D shapes, one per region. Rotating it gives front and back views, and it avoids drawing about 150 SVG files.
-- What it changes: replaces D-017 and adds two dependencies, `three` and `@react-three/fiber`.
-- Needed by: the avatar step of the prototype.
+Q-1, Q-2, Q-5, Q-7 and Q-8 are settled. See D-028 to D-031 and D-033.
 
 **Q-3: Where does the 3D body come from?**
-- For the start, D-025 means the free route. Recommendation: MPFB, a free add-on for Blender whose output is free for commercial use. It makes a realistic human body with a built-in muscle shape, which we split into our 19 regions.
-- What it needs: Blender installed on the owner's computer. Blender is free, but installing it needs the owner's OK.
+- Recommendation: MPFB, a free add-on for Blender. Bodies made with it may be used in a commercial game. It already contains muscle shapes for separate body parts (upper arm, forearm, shoulder, chest, lats, stomach, thigh, buttocks and calf), which a script turns into our 19 regions. The method is in section 5 of [Architecture.md](Architecture.md).
+- What it needs: the owner's OK to download Blender. It is free, about 300 to 400 MB to download and under 1 GB on the E: drive. It runs from its own folder and is not installed into Windows.
 - Later, if the game does well: hire a 3D artist to restyle or replace the body. The file format stays the same, so the code does not change.
-- Needed by: after the code-built placeholder is working.
+- Needed by: the real-body step of the prototype.
 
 **Q-4: Do players get a face made from a selfie?**
 - Recommendation: treat it as a separate optional feature for later. Fitting a ready-made head onto our muscle body is not straightforward.
 - Needed by: not before the mobile app.
-
-**Q-5: What do we build the real 3D game in?**
-- Recommendation: Unity. It is free until the project passes $200,000 in revenue or funding, it is the most used engine for phone games, it runs well on mid-range Android phones, and it has the largest pool of people to hire.
-- Other options: Unreal, which Tekken 8 uses. It has the best graphics and is free until a game earns $1 million, but it is heavy on phones. Godot, which is free forever and can sit inside an Expo app, but has fewer people to hire. Staying with web 3D, which is fine for an avatar viewer and simple replays but not for a full fighting game.
-- What carries over whichever we pick: the 3D body file and the growth engine's numbers.
-- Needed by: the start of the mobile app phase. The web prototype does not depend on it.
 
 **Q-6: Where do a player's usual weights and reps come from?**
 - Background: the engine judges effort by comparing each set with the player's usual weight or reps for that exercise. The spec does not say who supplies those usual numbers.
@@ -44,16 +29,14 @@ Every decision made on this project, in the order it was made. Look here to find
 - Recommendation for the prototype: treat the first weight logged for an exercise as the usual one. This matches D-019, where the first session defines what "usual" means.
 - Needed by: the set logging step of the prototype.
 
-**Q-7: Which game do we build first: one-on-one fighting, 11-a-side football, or an open world?**
-- Recommendation: one-on-one fighting, in the style of Tekken.
-- Why: the camera is close, so the muscles people earned are easy to see. It needs two characters and one arena, where football needs 22 players, team behaviour and ball physics, and an open world needs a whole city. It also fits couples and friends, who compete one against one.
-- Football and other sports: possible later as extra modes that reuse the same avatar (D-027). An open world is the most expensive kind of game to make and is not a starting point.
-- Needed by: before work starts on the fight replay.
+**Q-9: Do played fights count toward the weekly match?**
+- Background: D-016 says the gym week decides who wins the weekly match. A played fight is won by skill with the controls.
+- Recommendation: no. Played fights are a separate, friendly mode with their own win record. The weekly match stays decided by gym points.
+- Needed by: before the played fight is built.
 
-**Q-8: Is the fight played with controls, or watched?**
-- Background: D-016 says points from the gym week decide the winner and the fight is a replay. A Tekken-style game is normally played with controls, where the more skilled player wins.
-- Recommendation: keep D-016 and build the fight as a replay you watch first. A played mode can come later, where gym stats set the fighter's power and you fight a computer-controlled copy of your opponent's avatar. That avoids live online fighting, which is one of the hardest things to build in games.
-- Needed by: before work starts on the fight replay.
+**Q-10: Which fighting style is second, after boxing?**
+- Recommendation: a kicking style, either kickboxing or taekwondo, so that leg training has a style that rewards it. The choice between the two is made once we see which free kick animations look best.
+- Needed by: after the first style works.
 
 ## Decided
 
@@ -77,7 +60,7 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-014 | By 2026-10-07 | Self-reported sessions earn 50% credit. Friend-confirmed sessions earn 100%. | Reason not recorded in the spec. | Active |
 | D-015 | By 2026-10-07 | The weekly match is scored out of 100: 50 for plan completion, 30 for effort, 20 for personal bests. | Reason not recorded in the spec. | Active |
 | D-016 | By 2026-10-07 | In the fight replay, points decide the winner and avatar stats only shape the fighting style. The replay is built from a seed. | The seed makes the same replay play back the same way every time. | Active |
-| D-017 | By 2026-10-07 | The placeholder avatar is layered SVG drawings with front and back views, using file names like `biceps_size_33.svg`. | So real art can replace the files later without code changes. | Active (Q-2 proposes replacing it) |
+| D-017 | By 2026-10-07 | The placeholder avatar is layered SVG drawings with front and back views, using file names like `biceps_size_33.svg`. | So real art can replace the files later without code changes. | Replaced by D-029 |
 | D-018 | By 2026-10-07 | Working style: small steps, a one-line explanation before each command, ask before adding dependencies or installing anything globally, and commit after each working step. | The owner is new to coding. | Active |
 | D-019 | 2026-10-07 | A set with nothing to compare against, such as a new user's first session, counts at normal intensity (1.0). | The first session defines what "usual" means, instead of being scored against nothing. | Active |
 | D-020 | 2026-10-07 | Helper muscles count toward a region's hard sets for definition. One setting can restrict this to direct work only. | Reason not recorded. | Active |
@@ -88,3 +71,11 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-025 | 2026-10-09 | The 3D avatar must cost nothing to build and use at the start. Paid tools or artists can be considered later if the game does well. | The owner's requirement. | Active |
 | D-026 | 2026-10-09 | The look to aim for is a fighting game such as Tekken or WWE, with good graphics, rather than a simple cartoon. | The owner's choice. The game is about people competing by fighting. | Active |
 | D-027 | 2026-10-09 | The avatar and the game are built so that other modes can be added later, such as football, other sports or an open world. | The owner wants room to grow the game if it does well. | Active |
+| D-028 | 2026-10-09 | We build our own 3D body: one body with a "fully grown" shape for each muscle region, blended in by that region's score. This settles Q-1. | It is the only approach found that grows muscles one by one (D-022) at no cost (D-025). Chosen on the owner's behalf, as asked. | Active |
+| D-029 | 2026-10-09 | The prototype's avatar is 3D and replaces the layered SVG placeholder (D-017). It starts as a stand-in body built in code from simple shapes, and the real body file is swapped in afterwards. The 3D library is three.js. This settles Q-2. | One avatar system instead of two, and turning the body gives the front and back views. Chosen on the owner's behalf, as asked. | Active |
+| D-030 | 2026-10-09 | The avatar and the games are built with web 3D technology written entirely in code, not in Unity, Unreal or Godot. This settles Q-5 for now, and is looked at again if a team is hired. | The owner cannot use a game-engine editor or hire yet, so everything must be buildable and testable as code. It is also the same language as the growth engine. | Active |
+| D-031 | 2026-10-09 | The first game is a one-on-one arena fighter in the style of Tekken. Football, other sports and an open world stay as ideas for later. This settles Q-7. | The camera is close, so earned muscles are easy to see, and it needs far less building than a team sport or an open world. | Active |
+| D-032 | 2026-10-09 | The fighter's moves come from a real martial art that the player chooses. Every style and every move is open to every player. All styles use the same simple buttons, with no complicated input motions. A style is data rather than code. Boxing is first, and throw-based styles such as judo and wrestling come later. | The owner asked for martial arts styles that are easy to perform and open to everyone. Throws need two bodies animated together, which is the hardest kind of move to build. | Active |
+| D-033 | 2026-10-09 | One set of fight rules serves both a watched fight and a played fight. The watched weekly match replay is built first and keeps D-016. A played fight against a computer-controlled copy of the opponent comes second. Live online fighting is not planned. This settles Q-8. | The replay is the smaller build and is already in the spec. Live online fighting is among the hardest things in games to build. | Active |
+| D-034 | 2026-10-09 | Every game is a plug-in: its own folder under `games/`, connected only through a small contract and events, and listed in one game list with an on/off switch. Switching off or deleting a game must not affect anything else. | The owner's requirement, so a game can be taken down safely. It follows D-006 to D-009. | Active |
+| D-035 | 2026-10-09 | An architecture file describes the design we are building toward, and is kept current alongside this log and the project flow file. | So the plan for how the parts fit together is written down in one place. | Active |

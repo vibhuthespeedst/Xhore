@@ -1,12 +1,20 @@
 # Project flow
 
-What we are building, the order we are building it in, how the parts connect, and how it is going. Updated every time something is done on the project. Decisions and their reasons live in [Decision.md](Decision.md).
+What we are building, the order we are building it in, how the parts connect, and how it is going. Updated every time something is done on the project. Decisions and their reasons live in [Decision.md](Decision.md). The design we are building toward lives in [Architecture.md](Architecture.md).
 
 ## Where we are now
 
 *Last updated: 2026-10-09*
 
-Phase 0, the web prototype, is in progress. The growth engine is built and all 172 of its automated tests pass. The prototype page has not been started. The owner has set what the avatar must be: 3D, growing muscle by muscle, free at the start, with a fighting-game look. How to build it is waiting on a yes to two open questions, Q-1 and Q-2 in [Decision.md](Decision.md).
+Phase 0, the web prototype, is in progress. The growth engine is built and all 172 of its automated tests pass. The prototype page has not been started. The design for the 3D avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md). Building starts once the owner gives the first two OKs below.
+
+## Waiting on the owner
+
+| What | Why it is needed | Needed for |
+| --- | --- | --- |
+| OK to add the 3D library three.js to the project | It draws the avatar and the games. It is free. The owner's rule is that new libraries are asked about first. | Step 6 |
+| OK to download Blender and the MPFB add-on onto the E: drive | They build the real 3D body. Both are free. Blender is about 300 to 400 MB to download and under 1 GB on disk. It runs from its own folder and is not installed into Windows. | Step 7 |
+| A free Adobe account, later | The largest free set of fight animations, Mixamo, needs a sign-in. Only the owner can do that. | Step 12 |
 
 ## The road map
 
@@ -20,7 +28,7 @@ The later phases are described in the owner's architecture doc. They will be bro
 
 ## Phase 0 steps
 
-Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-coder can use it without help. The spec allows 1 to 2 weeks for it.
+Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-coder can use it without help. The spec allowed 1 to 2 weeks for it. The real 3D body and the fight game have been added since, so it will take longer than that.
 
 | # | Step | Status | Notes |
 | --- | --- | --- | --- |
@@ -29,25 +37,32 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 3 | Write tests for every engine rule | Done 2026-10-07 | 172 tests passing when checked on 2026-10-09 |
 | 4 | Create the prototype page (Vite, React, TypeScript) | Not started | |
 | 5 | Log sets on the page | Not started | Needs Q-6 settled |
-| 6 | Show an avatar that grows, with front and back views | Waiting on a decision | Q-1 and Q-2 |
-| 7 | Skip ahead a week | Not started | |
-| 8 | Score the weekly match | Not started | The rules are in the spec but are not built yet |
-| 9 | Replay a fight between two avatars | Not started | Needs Q-7 and Q-8 settled |
+| 6 | Show a 3D avatar that grows, using a stand-in body built in code | Not started | Needs the owner's OK to add three.js |
+| 7 | Build the real 3D body and swap it in | Not started | Needs the owner's OK to download Blender (Q-3) |
+| 8 | Skip ahead a week | Not started | |
+| 9 | Score the weekly match | Not started | The rules are in the spec but are not built yet |
+| 10 | Add the game contract and the game list | Not started | This is what lets a game be switched off or deleted safely |
+| 11 | Build the fight rules with one fighting style, boxing | Not started | Tested without graphics, like the growth engine |
+| 12 | Replay a fight between two avatars | Not started | Needs fight animations |
+
+After Phase 0: a second fighting style (Q-10), then a fight you play against a computer-controlled copy of your opponent (Q-9), then the phone app.
 
 ## The parts and how they connect
 
-This is the map of the project. Each part does one job and is kept apart from the others, so any change can be traced to one place. When a part is added or changed, its row here is updated in the same step.
+This is the map of the project. Each part does one job and is kept apart from the others, so any change can be traced to one place. When a part is added or changed, its row here is updated in the same step. The full design, including the parts that are not built yet, is in [Architecture.md](Architecture.md).
 
-### The four big parts
+### The big parts
 
 | Part | Folder | Its one job | Status |
 | --- | --- | --- | --- |
 | Growth engine | [engine/](engine/) | The rules of the game. It turns logged sets into muscle size and definition, and has no screen of its own. | Built |
-| Prototype page | `prototype/` | The web page for trying the game. It shows things and collects what you type. | Not started |
+| Shared kits | `shared/avatar-kit/`, `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | Planned |
+| Games | `games/arena-fight/` | One folder per game. Each is a plug-in that can be removed. The first is the arena fighter. | Planned |
+| Prototype page | `prototype/` | The web page for trying everything. It shows things and collects what you type. | Not started |
 | Mobile app | `app/` | The real Android and iOS app. | Later |
 | Server | `functions/` | The online side, built with Firebase. | Later |
 
-The page, the app and the server all use the same engine, and the engine uses none of them. That is why the rules only have to be written and tested once.
+The page, the app, the games and the server all use the same engine, and the engine uses none of them. That is why the rules only have to be written and tested once.
 
 ### How the parts are kept separate
 
@@ -56,6 +71,7 @@ The page, the app and the server all use the same engine, and the engine uses no
 - Each piece of data has one writer. Only the growth engine may work out an avatar's size and definition.
 - Optional features have an off switch, and the game still works with one switched off.
 - Everything outside the engine reaches it through one front door, [engine/src/index.ts](engine/src/index.ts). The inside of the engine can then change without breaking the page or the app.
+- Every game is a plug-in. It is named in one place only, the game list, so switching it off or deleting its folder affects nothing else. Sections 3 and 4 of [Architecture.md](Architecture.md) describe how.
 
 ### Inside the growth engine
 
@@ -82,9 +98,11 @@ These pieces of data are the only way the parts talk to each other.
 | --- | --- | --- | --- | --- |
 | Session | One gym visit: when it happened, whether it was self-reported or friend-confirmed, and its sets (exercise, reps, weight). | Set logging | Growth engine | Shape defined, nothing makes it yet |
 | Baselines | Your usual weight or reps for each exercise, used to judge effort. | Not decided yet (Q-6) | Growth engine | Shape defined, nothing makes it yet |
-| Avatar state | For each of the 19 regions: size, definition, starting size, best size reached and when it was last trained. It also keeps the last 4 weeks of hard-set counts, which definition needs. | Growth engine only | Avatar view, fight replay | Yes |
+| Avatar state | For each of the 19 regions: size, definition, starting size, best size reached and when it was last trained. It also keeps the last 4 weeks of hard-set counts, which definition needs. | Growth engine only | Avatar view, games | Yes |
 | Week report | What one week did: sets counted and skipped, average intensity, and each region's size and definition before and after. | Growth engine only | Weekly match, the page | Yes |
-| Match points | A player's score for the week, 0 to 100. | Weekly match | Fight replay | Not yet |
+| Match points | A player's score for the week, 0 to 100. | Weekly match | The page, games | Not yet |
+| Player snapshot | A read-only copy of each player's avatar state and match points, handed to a game when it starts. | The game list | A game | Not yet |
+| Game events | "Started", "finished" with the result, or "failed". | A game | The page | Not yet |
 
 ### Features on the page
 
@@ -93,21 +111,21 @@ None of these are built yet. Each gets its own folder inside `prototype/` when i
 | Feature | What it does | Reads | Hands on | Step |
 | --- | --- | --- | --- | --- |
 | Set logging | You pick an exercise, enter reps and weight, and mark the session as self-reported or friend-confirmed. | What you type | Sessions | 5 |
-| Avatar view | Draws the avatar, front and back, with each region at its current size. | Avatar state | Nothing, it only displays | 6 |
-| Skip a week | Moves time forward one week and asks the engine to process it. | Sessions, avatar state | New avatar state, week report | 7 |
-| Weekly match | Scores a player's week out of 100 for plan completion, effort and personal bests. | Week report, sessions planned and done | Match points | 8 |
-| Fight replay | Plays a repeatable fight between two avatars. Points decide the winner, and muscles only shape the style. | Match points, two avatar states | Nothing, it only displays | 9 |
+| Avatar view | Shows the 3D avatar with each region at its current size. You can turn it to see the front and back. It uses the avatar kit. | Avatar state | Nothing, it only displays | 6 and 7 |
+| Skip a week | Moves time forward one week and asks the engine to process it. | Sessions, avatar state | New avatar state, week report | 8 |
+| Weekly match | Scores a player's week out of 100 for plan completion, effort and personal bests. | Week report, sessions planned and done | Match points | 9 |
+| Game list | Shows a button for each game that is switched on, and starts the one you pick. | Avatar state, match points | A player snapshot for the game | 10 |
 
-### Game modes, now and later
+### Games
 
-Every mode is a separate feature that only reads the avatar state. Adding a mode never changes the growth engine, and a mode can be switched off without breaking the rest.
+Every game is a separate plug-in that only reads the avatar state. Adding a game never changes the growth engine, and a game can be switched off or deleted without breaking the rest.
 
-| Mode | What it is | Status |
-| --- | --- | --- |
-| Fight replay | A one-on-one fight you watch, decided by the week's points. | Planned for Phase 0 (step 9) |
-| Played fighting | A one-on-one fight you control. | Idea (Q-8) |
-| Football and other sports | Team matches that reuse the same avatars. | Idea for later (Q-7) |
-| Open world | A shared world to walk around in. | Idea for later (Q-7) |
+| Game | What it is | Folder | Status |
+| --- | --- | --- | --- |
+| Arena fight, watched | The weekly match replay. You watch your avatar fight your opponent's, and the week's points decide the winner. | `games/arena-fight/` | Planned for Phase 0 (steps 11 and 12) |
+| Arena fight, played | You control your avatar against a computer-controlled copy of your opponent's. | `games/arena-fight/` | Planned after Phase 0 |
+| Football and other sports | Team matches that reuse the same avatars. | A new folder under `games/` | Idea for later |
+| Open world | A shared world to walk around in. | A new folder under `games/` | Idea for later |
 
 ### The loop, from a set to a fight
 
@@ -133,8 +151,12 @@ Only step 2 is built today. Steps 1, 3, 4 and 5 are still to build.
 | Change how definition is worked out | [definition.ts](engine/src/definition.ts) |
 | Change what a saved avatar stores | [types.ts](engine/src/types.ts). Add fields only, never rename or remove them (D-008). |
 | Find out why a test failed | [engine/tests/](engine/tests/), in the file named after the rule |
-| Change how the avatar looks | Not built yet (step 6) |
-| Change match scoring or the fight | Not built yet (steps 8 and 9) |
+| Change how the avatar looks | Not built yet (steps 6 and 7). It will live in `shared/avatar-kit/`. |
+| Change match scoring | Not built yet (step 9) |
+| Switch a game off, or remove one | Not built yet (step 10). It will be the game list on the page. |
+| Change a fighting move or a style | Not built yet (step 11). It will live in `games/arena-fight/content/`. |
+| Change the rules of a fight | Not built yet (step 11). It will live in `games/arena-fight/core/`. |
+| Change how a fight looks | Not built yet (step 12). It will live in `games/arena-fight/view/`. |
 
 ## How to check things yourself
 
@@ -151,11 +173,17 @@ Type these in the terminal from the project folder.
 
 Newest first.
 
-- **2026-10-09:** Researched ways to add a 3D avatar. The ready-made avatar services either closed or cost too much, so the proposal is our own body model (Q-1 and Q-2). Started the decision log and this file, then added the map of parts to this file. Writing the map showed that nobody has decided where a player's usual weights come from, so that is now Q-6. The owner then set the avatar requirements: free at the start, a fighting-game look, and room for other game modes (D-025 to D-027). Compared game engines and game modes. The recommendations are Unity for the real game (Q-5), one-on-one fighting first (Q-7) and a watched replay before a played fight (Q-8).
+- **2026-10-09:**
+  - Researched ways to add a 3D avatar. The ready-made avatar services either closed or cost too much, so we build our own body.
+  - Started the decision log and this file, then added the map of parts. Writing the map showed that nobody has decided where a player's usual weights come from, so that is now Q-6.
+  - The owner set the avatar requirements: free at the start, a fighting-game look, and room for other game modes (D-025 to D-027).
+  - The owner asked for the method to be chosen for a team that cannot use a game-engine editor or hire. Checked how to get the avatar and how a Tekken-style fighter is built, then wrote [Architecture.md](Architecture.md). The decisions are D-028 to D-035.
+  - What the checks found: the free body tool already has muscle shapes for separate body parts. Fighting games are built as a set of rules that runs in fixed steps, kept separate from the graphics. Blender is not yet on the owner's computer.
 - **2026-10-07:** Set up the repository with the `engine` workspace. Built the growth engine rules and a test for every rule. A beginner doing 9 hard sets a week reaches size 50 in week 15, 80 in week 34 and 90 in week 49, which matches the targets in the spec.
 
 ## Next up
 
-1. Settle Q-1 and Q-2 so the avatar step can start.
+1. The owner gives the first two OKs under "Waiting on the owner".
 2. Create the prototype page (step 4).
 3. Settle Q-6, then add set logging to the page (step 5).
+4. Add the avatar screen with the stand-in body (step 6).
