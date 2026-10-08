@@ -1,0 +1,64 @@
+# Decision log
+
+Every decision made on this project, in the order it was made. Look here to find out what was decided, when, and why.
+
+## How this log works
+
+- Each decision gets a number (D-001, D-002, and so on) that never changes.
+- Entries are never deleted or rewritten. If we change our mind, we add a new entry that says which older one it replaces, and mark the older one "Replaced by D-0xx".
+- A choice that is still open sits under "Waiting on a decision". Once settled, it moves into the log with a number.
+- The log is updated in the same step as the work the decision affects.
+
+## Waiting on a decision
+
+**Q-1: How do we build the 3D avatar?**
+- Recommendation: make our own body model with one "fully grown" shape per muscle region, and blend each shape in as that region's size goes up. This technique is called morph targets.
+- Why not a ready-made avatar service: Ready Player Me closed on 31 January 2026. Snap removed its Bitmoji kit for developers in March 2022. Avatar SDK still runs, but costs $800 a month and does not let us grow muscles one by one.
+- Needed by: the avatar step of the prototype.
+
+**Q-2: Does a 3D placeholder replace the SVG placeholder in the prototype?**
+- Recommendation: yes. Build the placeholder body in code from simple 3D shapes, one per region. Rotating it gives front and back views, and it avoids drawing about 150 SVG files.
+- What it changes: replaces D-017 and adds two dependencies, `three` and `@react-three/fiber`.
+- Needed by: the avatar step of the prototype.
+
+**Q-3: Where does the final 3D art come from?**
+- Options: hire a 3D artist to sculpt a cartoon body with the 19 muscle shapes, or start from MPFB (a free Blender add-on) and sculpt the shapes on top.
+- Needed by: after the prototype has shown the core loop is fun.
+
+**Q-4: Do players get a face made from a selfie?**
+- Recommendation: treat it as a separate optional feature for later. Fitting a ready-made head onto our muscle body is not straightforward.
+- Needed by: not before the mobile app.
+
+**Q-5: Which 3D drawing library do we use on phones?**
+- Options seen so far: react-three-fiber with expo-gl, react-native-filament, react-native-wgpu.
+- Needed by: the start of the mobile app phase.
+
+## Decided
+
+Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start this log, so their date reads "By 2026-10-07", the day of the first commit. Where the spec gives no reason, the Why column says so.
+
+| # | Date | Decision | Why | Status |
+| --- | --- | --- | --- | --- |
+| D-001 | By 2026-10-07 | Build a web prototype first (Phase 0), with no backend, no accounts and no paid services. | To prove the core loop is fun before building the real app. | Active |
+| D-002 | By 2026-10-07 | The real app will be one Expo app for Android and iOS, with Firebase for the server side. | Reason not recorded in the spec. | Active |
+| D-003 | By 2026-10-07 | One repository split into workspaces: `engine` and `prototype` now, `app` and `functions` later. | So every part uses the same copy of the engine. | Active |
+| D-004 | By 2026-10-07 | The growth engine is plain TypeScript with no file or network access, no React and no clock. The current time is handed to it. | So the prototype, the app and the server all run the same maths, and the prototype can skip ahead a week. | Active |
+| D-005 | By 2026-10-07 | Every tuning number lives in one settings object in the engine. | So the feel of the game can be retuned in one place. | Active |
+| D-006 | By 2026-10-07 | Each feature lives in its own folder and never imports another feature's code. Features talk through events and documented data fields. | To keep features independent of each other. | Active |
+| D-007 | By 2026-10-07 | One writer per field: only the growth engine computes avatar scores. | To keep features independent of each other. | Active |
+| D-008 | By 2026-10-07 | Stored data only ever gains fields. Nothing is renamed or removed, and stored data carries a version number. | So older saved avatars keep loading. | Active |
+| D-009 | By 2026-10-07 | Optional features fail safe, and each one has an off switch. | So the core game still works when one is missing or switched off. | Active |
+| D-010 | By 2026-10-07 | The avatar's body has 19 muscle regions, each with a size and a definition score from 0 to 100. | Reason not recorded in the spec. | Active |
+| D-011 | By 2026-10-07 | Starting growth numbers: only sets of 3 to 30 reps count, intensity is limited to between 0.5 and 1.2, weekly gain is capped at 3 and slows as a muscle gets bigger. Beginners start at 10, intermediates at 30, advanced at 50. | Chosen so a beginner doing 9 hard sets a week for one muscle reaches about 50 in 3 to 4 months, about 80 in about 8 months and about 90 in about a year. | Active |
+| D-012 | By 2026-10-07 | Untrained muscles shrink. After 14 days without training, a region loses 0.5 a week, never below its starting size. Lost size regrows at double speed up to the previous peak. | Reason not recorded in the spec. | Active |
+| D-013 | By 2026-10-07 | Definition follows consistency. The target is the share of the last 4 weeks that had at least 3 hard sets, and each week the score moves 25% of the way there. | Reason not recorded in the spec. | Active |
+| D-014 | By 2026-10-07 | Self-reported sessions earn 50% credit. Friend-confirmed sessions earn 100%. | Reason not recorded in the spec. | Active |
+| D-015 | By 2026-10-07 | The weekly match is scored out of 100: 50 for plan completion, 30 for effort, 20 for personal bests. | Reason not recorded in the spec. | Active |
+| D-016 | By 2026-10-07 | In the fight replay, points decide the winner and avatar stats only shape the fighting style. The replay is built from a seed. | The seed makes the same replay play back the same way every time. | Active |
+| D-017 | By 2026-10-07 | The placeholder avatar is layered SVG drawings with front and back views, using file names like `biceps_size_33.svg`. | So real art can replace the files later without code changes. | Active (Q-2 proposes replacing it) |
+| D-018 | By 2026-10-07 | Working style: small steps, a one-line explanation before each command, ask before adding dependencies or installing anything globally, and commit after each working step. | The owner is new to coding. | Active |
+| D-019 | 2026-10-07 | A set with nothing to compare against, such as a new user's first session, counts at normal intensity (1.0). | The first session defines what "usual" means, instead of being scored against nothing. | Active |
+| D-020 | 2026-10-07 | Helper muscles count toward a region's hard sets for definition. One setting can restrict this to direct work only. | Reason not recorded. | Active |
+| D-021 | 2026-10-07 | The engine's optional rules each have an off switch: decay, definition, trust credit and double-speed regrowth. | Follows D-009. | Active |
+| D-022 | 2026-10-09 | The avatar will be 3D, and its muscles will visibly grow. How it gets built is still open (Q-1 and Q-2). | The owner's choice for the game. No further reason recorded. | Active |
+| D-023 | 2026-10-09 | Keep this decision log and a project flow file, and update both as part of each step. | So every decision and the state of the project can be looked up in one place. | Active |
