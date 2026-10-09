@@ -2,7 +2,7 @@
 
 How the project is put together, and the plan for the 3D avatar and the first game. [Decision.md](Decision.md) records why each choice was made. [ProjectFlow.md](ProjectFlow.md) records what is built so far. This file describes the design we are building toward.
 
-*Last updated: 2026-10-09. Built so far: the growth engine, the prototype page, and the avatar kit with its stand-in body. Everything else here is the plan.*
+*Last updated: 2026-10-09. Built so far: the growth engine, the prototype page, the avatar kit, and the pipeline that builds the real 3D body. Everything else here is the plan.*
 
 ## 1. What shaped this design
 
@@ -23,7 +23,7 @@ Each layer is built on the ones below it in this table, never the other way roun
 | --- | --- | --- | --- |
 | Shell | [prototype/](prototype/) now, `app/` later | The screens: logging sets, the avatar screen, the weekly match, and the list of games. | Started: the avatar screen exists |
 | Games | `games/arena-fight/`, more later | One folder per game. Each is a plug-in that can be removed. | Planned |
-| Shared kits | [shared/avatar-kit/](shared/avatar-kit/), `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | The avatar kit is built with the stand-in body. The game contract is planned. |
+| Shared kits | [shared/avatar-kit/](shared/avatar-kit/), `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | The avatar kit is built and shows the real body. The game contract is planned. |
 | Rules | [engine/](engine/) | The growth maths. Weekly match scoring joins it later in its own folder. It has no screen. | Growth is built |
 | Server | `functions/` | The online side. It reuses the rules. | Later |
 
@@ -131,53 +131,63 @@ One 3D body file holds everything that is the same for every player:
 
 - the body's surface and skin,
 - a standard human skeleton, so ready-made animations fit it,
-- one size shape and one definition shape for each of the 19 regions, named after the region, such as `calves_size` and `calves_definition`.
+- one size shape for each of the 19 regions, named after the region, such as `calves_size`. Definition shapes, named like `calves_definition`, are planned and not in the file yet.
 
 A player's avatar is that shared body plus their own scores from the growth engine. Each shape is blended in by `score / 100`, so a calf score of 60 shows the calf shape at 60%. Training calves grows the calves and nothing else.
 
 ### 5.2 Where the body comes from
 
-The free route (D-025) uses Blender, a free 3D program, with MPFB, a free add-on that generates human bodies. Bodies made with it may be used in a commercial, closed-source game.
+The body is built for free (D-025) with Blender, a free 3D program, and MPFB, a free add-on that generates human bodies. Bodies made with it may be used in a commercial, closed-source game. Both are kept in `E:\XhoreTools`, outside the project (D-037).
 
-A script does the work, so nobody models by hand:
+A script does the work, so nobody models by hand. `npm run build:body` runs it and takes about a minute. This is built and working (D-043, D-044).
 
-1. Generate one athletic body.
-2. Build the 19 size shapes. MPFB already contains muscle shapes for separate body parts, which map onto our regions as shown in the table below.
-3. Build the 19 definition shapes in the same way, from sharper versions of the same shapes. This is settled by looking at test pictures.
+1. Generate the body slim and untrained. This is the body at a score of 0.
+2. Generate the same body heavily muscled, and measure how far every point moved between the two.
+3. Split that movement into the 19 regions with soft-edged masks. A region's shape is the slim body plus that region's share of the movement, so one shape grows one muscle, and all of them together give the muscled body back.
 4. Add the skeleton that matches the free animation libraries.
-5. Save pictures of every region at 0 and at 100, from the front, back and side, so the result is checked by eye before it is accepted.
-6. Export one `.glb` file.
+5. Colour trunks onto the body, cutting the mesh along the waistband and the hem so their edges are straight.
+6. Save pictures of every region grown to 100 with its area marked in red, from the front, back and side. They are in [tools/avatar-pipeline/previews/](tools/avatar-pipeline/previews/).
+7. Lower the arms into a relaxed stance and write one `.glb` file into the avatar kit.
 
-| Our regions | Built from MPFB's shape | How |
+Where MPFB has its own muscle shape for a body part, that shape's area decides where the region is:
+
+| Our regions | Area taken from MPFB's shape | How |
 | --- | --- | --- |
 | biceps, triceps | Upper-arm muscle | Split into front and back |
 | forearms | Lower-arm muscle | Used as it is |
-| delt_front, delt_side, delt_rear | Shoulder muscle | Split into three |
-| chest_upper, chest_mid, chest_lower | Pectoral muscle | Split into three bands |
+| delt_front, delt_side, delt_rear | Shoulder muscle | Split into three by which way the skin faces |
+| chest_upper, chest_mid, chest_lower | Pectoral muscle | Split into three bands by height |
 | lats | Dorsi muscle | Used as it is |
-| abs | Stomach tone | Used as it is |
 | quads, hamstrings | Upper-leg muscle | Split into front and back |
 | glutes | Buttocks volume | Used as it is |
 | calves | Lower-leg muscle | Used as it is |
-| traps, mid_back, lower_back, obliques | Overall muscle | Limited to that area of the body |
+| abs, obliques, traps, mid_back, lower_back | None | Placed by where they sit on the torso: height, distance from the spine, and which way the skin faces |
 
-Shorts are coloured onto the body itself, like tight wrestling trunks, so they grow with the muscles. Separate clothing would need the same 19 shapes and is left for later.
+Each region then spreads a few centimetres into neighbouring skin that no region owns, so the skin between muscles grows too. About 83% of the muscled body's growth ends up in a region. The rest is on the head, hands, feet and joints, which belong to no region and never change.
 
-One body is built first to prove the method. A second body type follows from the same script with different settings.
+Trunks are coloured onto the body itself, like tight wrestling trunks, so they grow with the muscles (D-045). Separate clothing would need the same 19 shapes and is left for later.
+
+What this first version does not have yet:
+
+- detailed skin, eyes, eyebrows and hair (Q-11),
+- definition shapes, so definition is shown for the whole body as glossier skin (D-048),
+- a female body (Q-12).
 
 #### Build notes
 
-For whoever writes the script.
+For whoever changes the script. These were all learned by building it.
 
-- Blender runs without its window from the command line, so the whole pipeline is one command.
-- Use a Blender LTS release (4.5 at the time of writing) as a portable folder on the E: drive. The C: drive has little free space. MPFB 2.0.17 needs Blender 4.2 or newer.
-- MPFB can be driven from a script. `HumanService.create_human()` is its entry point.
-- MPFB's shapes are files of per-vertex offsets (`.target.gz`), so each region shape can be created directly as a Blender shape key. The ones used are `upperarm-muscle-incr`, `lowerarm-muscle-incr`, `upperarm-shoulder-muscle-incr`, `torso-muscle-pectoral-incr`, `torso-muscle-dorsi-incr`, `stomach-tone-incr`, `upperleg-muscle-incr`, `lowerleg-muscle-incr`, `buttocks-volume-incr` and the `maxmuscle` macro shapes.
-- Left and right shapes are joined into one shape per region, so both sides grow together.
-- Run MPFB's "delete helpers" step before export, and keep our own shape keys. Do not bake them.
-- Use MPFB's Mixamo skeleton, so Mixamo animations fit. MPFB's notes say its skin weights are rough in extreme poses.
-- A regional shape moves only a small part of the body, so the file stays small if each shape stores only the points it moves.
-- three.js reads the shape names from the file, so the kit finds each shape by its region name.
+- Blender 4.5.14 LTS runs as a portable folder at `E:\XhoreTools\blender-4.5.14-windows-x64`. A folder named `portable` beside `blender.exe` keeps its settings and add-ons out of the Windows profile. MPFB 2.0.17 was installed there with `blender --online-mode --command extension install --sync --enable mpfb`.
+- [run.mjs](tools/avatar-pipeline/run.mjs) finds Blender and runs [build_body.py](tools/avatar-pipeline/build_body.py) with `--background`. Set `BLENDER_PATH` to use a Blender somewhere else.
+- `HumanService.create_human()` makes the body. It must be called with `detailed_helpers=True`. Without them the skeleton cannot find the joints and comes out in a T-pose that does not match the body.
+- The slim and muscled bodies are MPFB's `muscle` and `weight` sliders at two settings. The muscled one also gets MPFB's per-body-part muscle targets (`upperarm-muscle-incr`, `torso-muscle-pectoral-incr` and so on) at a weight of 1.3.
+- MPFB's skin weights do not add up to 1 on every point. Treat them as shares of the point's total.
+- The helper geometry is deleted after the skeleton is added, because the skeleton needs it, and before the masks are worked out.
+- The masks are stored on the mesh as attributes while the trunks are cut, because the cut adds points. Blender fills in the shape keys and attributes for the new points.
+- The skeleton is MPFB's `mixamo` rig: 52 bones named `mixamorig:Hips` and so on. three.js drops the colon when it loads them.
+- Export uses the current pose rather than the rest pose, so the file opens in the relaxed stance. Shape normals are exported so that grown muscles are lit correctly.
+- The file holds two meshes, skin and trunks, each with all 19 shapes. Code that reads it must treat every mesh alike, and must measure anything "largest across the body" over both.
+- Left and right sides share one shape per region, so both sides grow together.
 
 ### 5.3 The avatar kit
 
@@ -191,7 +201,7 @@ For whoever writes the script.
 
 It never works out a score. It only displays the ones it is given.
 
-Every body follows one contract, so screens and games ask the kit for "the body" and never name which kind (D-040). Today the kit hands back a stand-in body built in code from simple shapes, one or more per region. When the real body file exists, the same call hands that back instead, and no screen or game changes.
+Every body follows one contract, so screens and games ask the kit for "the body" and never name which kind (D-040). The kit hands back the real body from the body file. If that file cannot be loaded, it hands back a stand-in built in code from simple shapes instead, so the avatar is never simply missing (D-046). The stand-in was built first, and the real body replaced it without any change to the avatar screen's own logic.
 
 The kit also has a ready-made viewer: lights, a floor ring, a camera that can be dragged round the body, and easing so that growth is seen happening. The avatar screen uses it. A game brings its own scene and uses only the body.
 
@@ -314,10 +324,10 @@ The fight view only reads the core's state and draws it. It never changes the ou
 
 Each step leaves something that works by itself.
 
-1. The prototype page.
+1. The prototype page. Done.
 2. Set logging.
-3. The avatar screen with the stand-in body, driven by the growth engine.
-4. The real body from the Blender script, swapped in.
+3. The avatar screen with the stand-in body, driven by the growth engine. Done.
+4. The real body from the Blender script, swapped in. Done, as a first version.
 5. Skip a week, and weekly match scoring.
 6. The game contract, the game list, and the two tests from section 4.
 7. The fight core with boxing, tested without graphics.
@@ -331,8 +341,8 @@ Step numbers in [ProjectFlow.md](ProjectFlow.md) track progress against this ord
 
 | Risk | How we handle it |
 | --- | --- |
-| A region shape looks wrong where a ready-made shape is split. | Check the test pictures for every region, and adjust the split until they look right. |
-| Ready-made animations fit the body loosely in extreme poses. | Try three animations first, before collecting the full set. |
+| A region shape looks wrong where a ready-made shape is split. | Look at the checking pictures after every rebuild. The first version was checked this way and every region sits in the right place. |
+| Ready-made animations fit the body loosely in extreme poses. | Lowering the arms 24 degrees deforms the shoulders cleanly, which is a good sign. Try three animations first, before collecting the full set. |
 | Phones are slower than computers. | Open the prototype in a phone's browser as soon as the fight view exists. Keep the body light, and work the muscles in once per fight. |
 | The owner's computer has 8 GB of memory and a nearly full C: drive. | Keep Blender on the E: drive and build one body at a time. |
 | The project is now much bigger than the first prototype plan. | Build in the stages above. Each one is useful without the next. |

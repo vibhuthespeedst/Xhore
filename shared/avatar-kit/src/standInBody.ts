@@ -142,6 +142,7 @@ export function createStandInBody(): AvatarBody {
   return {
     object: root,
     height: STAND_IN_HEIGHT,
+    kind: 'stand-in',
 
     applyScores(scores: RegionScores): void {
       for (const piece of pieces) {

@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "npm run dev --workspace @xhore/prototype",
     "build": "npm run build --workspace @xhore/prototype",
+    "build:body": "node tools/avatar-pipeline/run.mjs",
     "test": "npm run test --workspaces --if-present",
     "test:watch": "npm run test:watch --workspace @xhore/engine",
     "curve": "npm run curve --workspace @xhore/engine",

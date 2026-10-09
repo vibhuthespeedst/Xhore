@@ -13,6 +13,12 @@ export interface AvatarBody {
   readonly object: Object3D
   /** Standing height in metres, for framing a camera. */
   readonly height: number
+  /**
+   * Which body this is: the real model, or the stand-in built from simple
+   * shapes. Only for telling a person what they are looking at; nothing should
+   * behave differently because of it.
+   */
+  readonly kind: 'model' | 'stand-in'
   /** Shows each region at its score, at once. Easing between scores is the viewer's job. */
   applyScores(scores: RegionScores): void
   setSkinTone(colour: ColorRepresentation): void

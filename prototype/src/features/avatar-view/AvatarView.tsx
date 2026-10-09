@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_SKIN_TONE, loadAvatarBody, mountAvatarViewer } from '@xhore/avatar-kit'
 import type { AvatarBody, AvatarViewer, RegionScores, ViewName } from '@xhore/avatar-kit'
+import bodyModelUrl from '@xhore/avatar-kit/assets/body-male.glb?url'
 import type { RegionId } from '@xhore/engine'
 import './avatar-view.css'
 
@@ -32,6 +33,7 @@ const SKIN_TONES: readonly { readonly label: string; readonly colour: string }[]
 export function AvatarView({ scores, highlight }: AvatarViewProps) {
   const stageRef = useRef<HTMLDivElement>(null)
   const [viewer, setViewer] = useState<AvatarViewer | null>(null)
+  const [bodyKind, setBodyKind] = useState<AvatarBody['kind'] | null>(null)
   const [failed, setFailed] = useState(false)
   const [skinTone, setSkinTone] = useState(DEFAULT_SKIN_TONE)
   /** The viewer that has already been given its first scores, which appear without easing. */
@@ -45,7 +47,7 @@ export function AvatarView({ scores, highlight }: AvatarViewProps) {
     let body: AvatarBody | null = null
     let mounted: AvatarViewer | null = null
 
-    loadAvatarBody()
+    loadAvatarBody({ modelUrl: bodyModelUrl })
       .then((loaded) => {
         if (cancelled) {
           loaded.dispose()
@@ -54,6 +56,7 @@ export function AvatarView({ scores, highlight }: AvatarViewProps) {
         body = loaded
         mounted = mountAvatarViewer(stage, { body: loaded })
         setViewer(mounted)
+        setBodyKind(loaded.kind)
       })
       .catch(() => {
         // Usually a browser or device that cannot start 3D graphics.
@@ -124,7 +127,8 @@ export function AvatarView({ scores, highlight }: AvatarViewProps) {
       </div>
 
       <p className="avatar-note">
-        Stand-in body made of simple shapes. Drag to turn it, scroll to zoom.
+        {bodyKind === 'stand-in' && 'The body file could not be loaded, so this is a stand-in made of simple shapes. '}
+        Drag to turn it, scroll to zoom.
       </p>
     </section>
   )

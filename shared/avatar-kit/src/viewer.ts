@@ -47,7 +47,11 @@ export interface AvatarViewer {
 /** Degrees. Narrow, so the body is not distorted the way a wide lens would distort it. */
 const FIELD_OF_VIEW = 30
 /** How much taller than the body the picture is. */
-const FRAME_MARGIN = 1.3
+const FRAME_MARGIN = 1.34
+/** Where the camera looks, as a share of the body's height. A little below the middle leaves room for the floor ring. */
+const FOCUS_HEIGHT = 0.47
+/** The floor ring's radius, as a share of the body's height, so it stays in the picture for any body. */
+const RING_RADIUS = 0.43
 /** Metres across with arms and grown lats, used to fit the body on a narrow screen. */
 const BODY_WIDTH = 0.95
 const MAX_PIXEL_RATIO = 2
@@ -130,13 +134,14 @@ export function mountAvatarViewer(
   lightRig.add(key, key.target, rim, fill)
   scene.add(ambient, lightRig)
 
-  const floorGeometry = new CircleGeometry(1.3, 64)
+  const ringRadius = body.height * RING_RADIUS
+  const floorGeometry = new CircleGeometry(ringRadius * 1.5, 64)
   const floorMaterial = new ShadowMaterial({ opacity: 0.38 })
   const floor = new Mesh(floorGeometry, floorMaterial)
   floor.rotation.x = -Math.PI / 2
   floor.receiveShadow = true
 
-  const ringGeometry = new RingGeometry(0.86, 0.88, 96)
+  const ringGeometry = new RingGeometry(ringRadius - 0.02, ringRadius, 96)
   const ringMaterial = new MeshBasicMaterial({
     color: options.ringColour ?? DEFAULT_RING_COLOUR,
     transparent: true,
@@ -147,7 +152,7 @@ export function mountAvatarViewer(
   ring.position.y = 0.002
   scene.add(floor, ring)
 
-  const focus = new Vector3(0, body.height / 2, 0)
+  const focus = new Vector3(0, body.height * FOCUS_HEIGHT, 0)
   const camera = new PerspectiveCamera(FIELD_OF_VIEW, 1, 0.1, 50)
   const spherical = new Spherical()
   const offset = new Vector3()

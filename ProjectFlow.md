@@ -6,7 +6,7 @@ What we are building, the order we are building it in, how the parts connect, an
 
 *Last updated: 2026-10-09*
 
-Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a 3D avatar whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body is a stand-in made of simple shapes for now. All 250 automated tests pass. The design for the avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md). The real 3D body is next.
+Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It is a first version: it has no detailed skin, eyes or hair yet. All 259 automated tests pass. The design for the avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md).
 
 ## Waiting on the owner
 
@@ -38,12 +38,13 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 4 | Create the prototype page (Vite, React, TypeScript) | Done 2026-10-09 | `npm run dev` opens it |
 | 5 | Log sets on the page | Not started | Needs Q-6 settled |
 | 6 | Show a 3D avatar that grows, using a stand-in body built in code | Done 2026-10-09 | Driven by a quick simulator until set logging exists |
-| 7 | Build the real 3D body and swap it in | Not started | Blender is downloaded to `E:\XhoreTools` and waiting to be unpacked |
+| 7 | Build the real 3D body and swap it in | Done 2026-10-09 | First version. `npm run build:body` rebuilds it. Skin, eyes and hair are step 13. |
 | 8 | Skip ahead a week | Not started | |
 | 9 | Score the weekly match | Not started | The rules are in the spec but are not built yet |
 | 10 | Add the game contract and the game list | Not started | This is what lets a game be switched off or deleted safely |
 | 11 | Build the fight rules with one fighting style, boxing | Not started | Tested without graphics, like the growth engine |
 | 12 | Replay a fight between two avatars | Not started | Needs fight animations |
+| 13 | Give the body a detailed skin, eyes and hair | Not started | Can be done at any point. Needs Q-11 settled. It also lets definition show muscle by muscle. |
 
 After Phase 0: a second fighting style (Q-10), then a fight you play against a computer-controlled copy of your opponent (Q-9), then the phone app.
 
@@ -56,7 +57,8 @@ This is the map of the project. Each part does one job and is kept apart from th
 | Part | Folder | Its one job | Status |
 | --- | --- | --- | --- |
 | Growth engine | [engine/](engine/) | The rules of the game. It turns logged sets into muscle size and definition, and has no screen of its own. | Built |
-| Avatar kit | [shared/avatar-kit/](shared/avatar-kit/) | Shows a 3D body with every muscle at its score. Every screen and game uses it. It never works a score out. | Built, with the stand-in body |
+| Avatar kit | [shared/avatar-kit/](shared/avatar-kit/) | Shows a 3D body with every muscle at its score. Every screen and game uses it. It never works a score out. | Built, with the real body and the stand-in as a fallback |
+| Body pipeline | [tools/avatar-pipeline/](tools/avatar-pipeline/) | Builds the body file with Blender and MPFB, and saves pictures of every muscle region for checking. It runs on the owner's computer, not in the app. | Built |
 | Game contract | `shared/game-api/` | The small contract every game follows. | Planned |
 | Games | `games/arena-fight/` | One folder per game. Each is a plug-in that can be removed. The first is the arena fighter. | Planned |
 | Prototype page | [prototype/](prototype/) | The web page for trying everything. It shows things and collects what you type. | Started. It has the avatar screen, a quick simulator and a muscle list. |
@@ -100,9 +102,19 @@ All of these are built. Their tests live in [shared/avatar-kit/tests/](shared/av
 | Body contract | Says what any body must be able to do: show scores, change skin tone, light up a region. The stand-in and the real body both follow it, which is why one can replace the other. | [body.ts](shared/avatar-kit/src/body.ts) |
 | Scores | Turns a 0 to 100 score into a 0 to 1 strength for blending shapes. | [scores.ts](shared/avatar-kit/src/scores.ts) |
 | Stand-in shapes | The stand-in body as a list of numbers: where each shape sits, and how big it is at a score of 0 and at 100. | [standInLayout.ts](shared/avatar-kit/src/standInLayout.ts) |
-| Stand-in body | Builds the body from that list and reshapes it when scores change. | [standInBody.ts](shared/avatar-kit/src/standInBody.ts) |
+| Stand-in body | Builds the body from that list and reshapes it when scores change. It is shown only if the body file cannot be loaded. | [standInBody.ts](shared/avatar-kit/src/standInBody.ts) |
+| Real body | Wraps the loaded body file: sets each region's shape to its score, colours the skin, and lights up a region by making its points glow. | [modelBody.ts](shared/avatar-kit/src/modelBody.ts) |
+| Body file | The body itself: about 13,500 points, a 52-bone skeleton with standard Mixamo names, and one shape per region named like `calves_size`. Made by the body pipeline, never edited by hand. | [body-male.glb](shared/avatar-kit/assets/body-male.glb) |
 | Viewer | Puts a body on screen: lights, floor ring, a camera you can drag, and smooth easing when scores change. | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
-| Front door | The only file other parts import from. It also holds the one call that loads the body. | [index.ts](shared/avatar-kit/src/index.ts) |
+| Front door | The only file other parts import from. It also holds the one call that loads the body, which hands back the real body, or the stand-in if the file cannot be loaded. | [index.ts](shared/avatar-kit/src/index.ts) |
+
+### Inside the body pipeline
+
+| Part | What it does | File |
+| --- | --- | --- |
+| Launcher | Finds Blender in `E:\XhoreTools` and runs the build script without opening Blender's window. `npm run build:body` starts it. | [run.mjs](tools/avatar-pipeline/run.mjs) |
+| Build script | Makes the slim body and the muscled body with MPFB, splits the difference between them into the 19 regions, adds the skeleton and the trunks, and writes the body file. Its tuning numbers are at the top. | [build_body.py](tools/avatar-pipeline/build_body.py) |
+| Checking pictures | Every region grown to 100 with its area in red, from the front, back and side, plus the finished stance slim and fully grown. Rewritten on every build. | [previews/](tools/avatar-pipeline/previews/) |
 
 ### What gets handed from part to part
 
@@ -124,7 +136,7 @@ Each feature has its own folder inside [prototype/src/features/](prototype/src/f
 
 | Feature | What it does | Reads | Hands on | Status |
 | --- | --- | --- | --- | --- |
-| Avatar view | Shows the 3D avatar with each region at its current size. You can drag it round, jump to the front, side or back, and pick a skin tone. It uses the avatar kit. | Avatar state, which region to light up | Nothing, it only displays | Built ([avatar-view/](prototype/src/features/avatar-view/)). The real body arrives in step 7. |
+| Avatar view | Shows the 3D avatar with each region at its current size. You can drag it round, jump to the front, side or back, and pick a skin tone. It uses the avatar kit. | Avatar state, which region to light up | Nothing, it only displays | Built ([avatar-view/](prototype/src/features/avatar-view/)). It shows the real body. |
 | Muscle list | Lists the 19 regions with bars for size and definition, and what the last skip changed. Pointing at a row lights that muscle up on the body. | Avatar state | Which region is pointed at | Built ([muscle-readout/](prototype/src/features/muscle-readout/)) |
 | Quick simulator | A temporary stand-in for set logging. You pick a starting level and a weekly routine, then skip 1, 4 or 12 weeks. It invents the sessions and the growth engine does the maths. | What you click | Sessions for the engine, then the new avatar state | Built ([quick-sim/](prototype/src/features/quick-sim/)). To be replaced by steps 5 and 8. |
 | Set logging | You pick an exercise, enter reps and weight, and mark the session as self-reported or friend-confirmed. | What you type | Sessions | Step 5 |
@@ -167,14 +179,19 @@ Steps 2 and 3 are built today. Step 1 is simulated for now, and steps 4 and 5 ar
 | Change how definition is worked out | [definition.ts](engine/src/definition.ts) |
 | Change what a saved avatar stores | [types.ts](engine/src/types.ts). Add fields only, never rename or remove them (D-008). |
 | Find out why a test failed | [engine/tests/](engine/tests/), in the file named after the rule |
+| Make a score of 100 look more or less muscular | `GROWTH_GAIN` and `DETAIL_WEIGHT` at the top of [build_body.py](tools/avatar-pipeline/build_body.py), then `npm run build:body` |
+| Change how slim the body is at a score of 0 | `BASE_MACRO` at the top of [build_body.py](tools/avatar-pipeline/build_body.py), then `npm run build:body` |
+| Change which part of the body a muscle region covers | `region_masks` in [build_body.py](tools/avatar-pipeline/build_body.py). Check the result in the [checking pictures](tools/avatar-pipeline/previews/). |
+| Change the trunks' length or colour, or how the arms hang | The trunks and stance numbers at the top of [build_body.py](tools/avatar-pipeline/build_body.py) |
+| See what each muscle region does to the body | [regions-front.png](tools/avatar-pipeline/previews/regions-front.png), [regions-back.png](tools/avatar-pipeline/previews/regions-back.png) and [regions-side.png](tools/avatar-pipeline/previews/regions-side.png). The tiles run: slim body, the 19 regions in the muscle list's order, then everything at 100. |
+| Change how definition looks, or the highlight colour, on the real body | The settings at the top of [modelBody.ts](shared/avatar-kit/src/modelBody.ts) |
 | Change the stand-in body's shape or proportions | [standInLayout.ts](shared/avatar-kit/src/standInLayout.ts). Every shape is one line of numbers. |
-| Change how definition looks, or the highlight colour | The settings at the top of [standInBody.ts](shared/avatar-kit/src/standInBody.ts) |
 | Change the lighting, the camera or the floor ring | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
 | Change the skin tones on offer, or the view buttons | [AvatarView.tsx](prototype/src/features/avatar-view/AvatarView.tsx) |
 | Change what a simulated week of training contains | [simulate.ts](prototype/src/features/quick-sim/simulate.ts) |
 | Change a muscle's display name | `REGION_LABELS` in [regions.ts](engine/src/regions.ts) |
 | Change the page's colours | The list at the top of [styles.css](prototype/src/styles.css) |
-| Swap in the real 3D body | Not built yet (step 7). It will load inside `loadAvatarBody` in [index.ts](shared/avatar-kit/src/index.ts). |
+| Change which body file the page loads | The `bodyModelUrl` line at the top of [AvatarView.tsx](prototype/src/features/avatar-view/AvatarView.tsx) |
 | Change match scoring | Not built yet (step 9) |
 | Switch a game off, or remove one | Not built yet (step 10). It will be the game list on the page. |
 | Change a fighting move or a style | Not built yet (step 11). It will live in `games/arena-fight/content/`. |
@@ -187,7 +204,8 @@ Type these in the terminal from the project folder.
 
 | Command | What it does |
 | --- | --- |
-| `npm test` | Runs every test: 173 for the growth engine, then 77 for the avatar kit. Both groups should say "passed". |
+| `npm test` | Runs every test: 173 for the growth engine, then 86 for the avatar kit. Both groups should say "passed". |
+| `npm run build:body` | Rebuilds the 3D body file and its checking pictures with Blender. It takes about a minute and needs Blender in `E:\XhoreTools`. Only needed after changing the build script. |
 | `npm run curve` | Prints a week-by-week table of how one muscle grows for a beginner. |
 | `npm run dev` | Starts the prototype page. It prints an address, normally `http://localhost:5173`. Open that in your browser. Press `Ctrl+C` in the terminal to stop it. |
 | `npm run typecheck` | Checks all the code for mistakes without running it. No output after the headings means no mistakes. |
@@ -198,6 +216,7 @@ Newest first.
 
 - **2026-10-09:**
   - The owner said yes to three.js and to Blender with MPFB, and asked to start with the avatar (D-036). Blender 4.5.14 was downloaded to `E:\XhoreTools`, outside the project (D-037).
+  - Step 7 done, first version: the page now shows a real human body. Blender 4.5.14 and MPFB 2.0.17 were set up in `E:\XhoreTools`. A script generates a slim body and a heavily muscled one, splits the difference into the 19 regions, adds a 52-bone skeleton with standard Mixamo names, colours trunks onto the body, lowers the arms into a relaxed stance and writes one 2.1 MB file. Checked in a browser: calves alone grow when only calf raises are trained, and 72 weeks of everything gives a heavyweight build. Checked in Blender's pictures: all 19 regions sit in the right place. Bugs found and fixed on the way: the skeleton did not fit until MPFB's helper points were kept, the trunks first covered the hands and then left a bare patch, and the muscle highlight lit the wrong points. What it does not have yet: detailed skin, eyes, hair, and definition shown muscle by muscle.
   - Step 6 done: the page shows a 3D avatar that grows. The avatar kit builds a stand-in body from simple shapes, one or more per muscle region. Checked in a browser: 12 weeks of calf raises took calves from 10 to 45.1 and changed no other muscle, and 60 weeks of every exercise produced a visibly muscular body. Dragging, the front, side and back buttons, skin tones and the muscle highlight all work. Three things were fixed after looking at it: the untrained body was too thin, the back view was too dark, and the camera could go under the floor.
   - Step 4 done: the prototype page exists. It shows the 19 muscle regions and their starting sizes, read straight from the growth engine, and the numbers change when you pick a different experience level. Checked by opening the page in a browser and clicking the buttons.
   - Researched ways to add a 3D avatar. The ready-made avatar services either closed or cost too much, so we build our own body.
@@ -209,6 +228,7 @@ Newest first.
 
 ## Next up
 
-1. Build the real 3D body with Blender and swap it in (step 7). The owner asked for the avatar first, so this comes before set logging.
-2. Settle Q-6, then add set logging to the page (step 5).
-3. Skip ahead a week (step 8), which together with set logging replaces the quick simulator.
+1. The owner looks at the body and says what should change.
+2. Settle Q-11, then give the body a detailed skin, eyes and hair (step 13), if the owner wants the look improved before the rest.
+3. Settle Q-6, then add set logging to the page (step 5).
+4. Skip ahead a week (step 8), which together with set logging replaces the quick simulator.

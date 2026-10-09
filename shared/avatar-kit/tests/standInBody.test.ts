@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Box3, Color, Mesh, MeshStandardMaterial, Scene, Vector3 } from 'three'
 import { REGION_IDS, createAvatar, regionRecord } from '@xhore/engine'
 import type { RegionId } from '@xhore/engine'
@@ -215,10 +215,21 @@ describe('stand-in body', () => {
 })
 
 describe('loadAvatarBody', () => {
-  it('hands back a body that is ready to show scores', async () => {
+  it('hands back the stand-in, ready to show scores, when given no body file', async () => {
     const body = await loadAvatarBody()
+    expect(body.kind).toBe('stand-in')
     expect(body.height).toBeGreaterThan(1.5)
     expect(() => body.applyScores(scores(30, 30))).not.toThrow()
     expect(musclesOf(body).length).toBeGreaterThan(REGION_IDS.length)
+  })
+
+  it('falls back to the stand-in when the body file cannot be loaded', async () => {
+    const warned = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const body = await loadAvatarBody({ modelUrl: 'no-such-body.glb' })
+
+    expect(body.kind).toBe('stand-in')
+    expect(() => body.applyScores(scores(30, 30))).not.toThrow()
+    expect(warned).toHaveBeenCalledOnce()
+    warned.mockRestore()
   })
 })
