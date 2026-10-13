@@ -167,11 +167,13 @@ Each region then spreads a few centimetres into neighbouring skin that no region
 
 Trunks are coloured onto the body itself, like tight wrestling trunks, so they grow with the muscles (D-045). Separate clothing would need the same 19 shapes and is left for later.
 
-What this first version does not have yet:
+The skin, eyes, eyebrows, eyelashes and hair come from MPFB's free "makehuman_system_assets" pack, which is in the public domain (D-051). The skin is a photograph wrapped round the body. The others are small separate meshes that MPFB fits to the head and binds to the skeleton. Which skin, hairstyle, eyebrows and eye colour are used is a list at the top of the build script.
 
-- detailed skin, eyes, eyebrows and hair (Q-11),
+What the body does not have yet:
+
 - definition shapes, so definition is shown for the whole body as glossier skin (D-048),
-- a female body (Q-12).
+- a female body (Q-12),
+- a choice of hairstyle, eye colour or face for each player.
 
 #### Build notes
 
@@ -186,7 +188,11 @@ For whoever changes the script. These were all learned by building it.
 - The masks are stored on the mesh as attributes while the trunks are cut, because the cut adds points. Blender fills in the shape keys and attributes for the new points.
 - The skeleton is MPFB's `mixamo` rig: 52 bones named `mixamorig:Hips` and so on. three.js drops the colon when it loads them.
 - Export uses the current pose rather than the rest pose, so the file opens in the relaxed stance. Shape normals are exported so that grown muscles are lit correctly.
-- The file holds two meshes, skin and trunks, each with all 19 shapes. Code that reads it must treat every mesh alike, and must measure anything "largest across the body" over both.
+- The asset pack (`makehuman_system_assets_cc0.zip`, 268 MB) is unpacked into MPFB's user data folder, `portable\extensions\.user\blender_org\mpfb\data` inside the Blender folder. `HumanService.add_mhclo_asset(..., material_type="GAMEENGINE")` adds an asset with a plain textured material that exports cleanly. It needs the helper geometry, so assets are added before the helpers are deleted.
+- The body's own skin material is built by the script from the skin's picture, not by MPFB, so that the trunks keep their own material.
+- Pictures are shrunk and stored as WebP, which keeps the see-through parts of hair and lashes and added only 0.6 MB. The skin picture's average colour is stored on the skin material as `skin_average`, in linear light, for tinting (D-052).
+- The file holds the body as two meshes, skin and trunks, each with all 19 shapes, plus the eyes, eyebrows, eyelashes and hair as meshes with no shapes. Code that reads it must treat every growing mesh alike, and must measure anything "largest across the body" over both.
+- The file marks hair, eyebrows, eyelashes and eyes as see-through. The avatar kit draws them solid, cutting away the empty parts of the cards (D-053).
 - Left and right sides share one shape per region, so both sides grow together.
 
 ### 5.3 The avatar kit

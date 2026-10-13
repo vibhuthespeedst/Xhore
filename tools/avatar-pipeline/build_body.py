@@ -5,9 +5,14 @@ Run it through the wrapper, which finds Blender for you:
     npm run build:body
 
 What it makes:
-  * a .glb file holding one body, a standard (Mixamo-named) skeleton, and one
-    shape per muscle region named "<region>_size";
-  * contact sheets of every region, so the result can be checked by eye.
+  * a .glb file holding one body with a photographic skin, eyes, eyebrows,
+    eyelashes and hair, a standard (Mixamo-named) skeleton, and one shape per
+    muscle region named "<region>_size";
+  * contact sheets of every region, and finished-look pictures, so the result
+    can be checked by eye.
+
+The skin, eyes and hair come from MPFB's free "makehuman_system_assets" pack,
+which has to be unpacked into MPFB's data folder first.
 
 How the shapes are made: MPFB can build the same body slim and heavily
 muscled. The difference between those two is split into the 19 regions with
@@ -28,6 +33,7 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 from bl_ext.blender_org.mpfb.entities.objectproperties import HumanObjectProperties
+from bl_ext.blender_org.mpfb.services.assetservice import AssetService
 from bl_ext.blender_org.mpfb.services.humanservice import HumanService
 from bl_ext.blender_org.mpfb.services.targetservice import TargetService
 
@@ -82,8 +88,20 @@ NOT_TRUNKS = ("Arm", "Hand")
 # How far each upper arm is lowered from MPFB's A-pose for the exported stance, in degrees.
 ARM_LOWERING = 24.0
 
-SKIN_COLOUR = (0.57, 0.25, 0.12, 1.0)
 SHORTS_COLOUR = (0.02, 0.02, 0.025, 1.0)
+
+# The look, all from MPFB's free asset pack. Texture sizes are the longest edge in pixels.
+SKIN = "young_caucasian_male"
+SKIN_TEXTURE_SIZE = 2048
+SKIN_ROUGHNESS = 0.55
+# Each entry: name in the body file, MPFB's folder, the asset inside it, MPFB's type name, texture size.
+ASSETS = [
+    ("eyes", "eyes", "low-poly/low-poly.mhclo", "Eyes", 512),
+    ("eyebrows", "eyebrows", "eyebrow001/eyebrow001.mhclo", "Eyebrows", 512),
+    ("eyelashes", "eyelashes", "eyelashes01/eyelashes01.mhclo", "Eyelashes", 512),
+    ("hair", "hair", "short04/short04.mhclo", "Hair", 1024),
+]
+IMAGE_QUALITY = 88
 
 # ---- small helpers --------------------------------------------------------
 
@@ -399,7 +417,72 @@ def take_masks(body):
     return masks
 
 
-# ---- trunks and materials -------------------------------------------------
+# ---- skin, eyes, hair and trunks ------------------------------------------
+
+
+def shrink_image(image, longest_edge):
+    if max(image.size) > longest_edge:
+        image.scale(longest_edge, longest_edge)
+
+
+def add_assets(body):
+    """Eyes, eyebrows, eyelashes and hair, fitted to the head and bound to the skeleton by MPFB.
+
+    This has to happen while the body still has its helper geometry, which is
+    what MPFB fits these to.
+    """
+    assets = []
+    for name, folder, fragment, asset_type, texture_size in ASSETS:
+        path = AssetService.find_asset_absolute_path(fragment, folder)
+        if path is None:
+            raise RuntimeError(
+                f"MPFB's asset pack has no {folder}/{fragment}. "
+                "Unpack makehuman_system_assets_cc0.zip into MPFB's data folder."
+            )
+        asset = HumanService.add_mhclo_asset(
+            path, body, asset_type=asset_type, subdiv_levels=0, material_type="GAMEENGINE"
+        )
+        asset.name = asset.data.name = name
+        for material in asset.data.materials:
+            material.name = name
+            for node in material.node_tree.nodes:
+                if node.type == "TEX_IMAGE" and node.image:
+                    shrink_image(node.image, texture_size)
+        assets.append(asset)
+    return assets
+
+
+def average_linear_colour(image):
+    """The image's average colour in linear light, which is what a renderer multiplies by."""
+    width, height = image.size
+    pixels = np.empty(width * height * 4, dtype=np.float32)
+    image.pixels.foreach_get(pixels)
+    encoded = pixels.reshape(-1, 4)[::16, :3].astype(np.float64)
+    linear = np.where(encoded <= 0.04045, encoded / 12.92, ((encoded + 0.055) / 1.055) ** 2.4)
+    return [float(value) for value in linear.mean(axis=0)]
+
+
+def skin_material():
+    """MPFB's photographic skin as a plain textured material that any engine can read."""
+    description = AssetService.find_asset_absolute_path(f"{SKIN}/{SKIN}.mhmat", "skins")
+    if description is None:
+        raise RuntimeError(f"MPFB's asset pack has no skin named {SKIN}")
+    with open(description, encoding="utf-8", errors="replace") as lines:
+        texture_file = next(line.split()[1] for line in lines if line.startswith("diffuseTexture"))
+    image = bpy.data.images.load(os.path.join(os.path.dirname(description), texture_file))
+    shrink_image(image, SKIN_TEXTURE_SIZE)
+
+    material = bpy.data.materials.new("skin")
+    material.use_nodes = True
+    shader = material.node_tree.nodes["Principled BSDF"]
+    texture = material.node_tree.nodes.new("ShaderNodeTexImage")
+    texture.image = image
+    material.node_tree.links.new(texture.outputs["Color"], shader.inputs["Base Color"])
+    shader.inputs["Roughness"].default_value = SKIN_ROUGHNESS
+    # Stored in the file so a renderer can turn "make the skin this colour" into
+    # the right tint for this particular picture of skin.
+    material["skin_average"] = average_linear_colour(image)
+    return material
 
 
 def plain_material(name, colour, roughness):
@@ -420,7 +503,7 @@ def add_trunks(body, rig):
     """
     mesh = body.data
     mesh.materials.clear()
-    mesh.materials.append(plain_material("skin", SKIN_COLOUR, 0.62))
+    mesh.materials.append(skin_material())
     mesh.materials.append(plain_material("shorts", SHORTS_COLOUR, 0.85))
 
     waistband = rig.data.bones[BONE_PREFIX + "Hips"].head_local.z + WAISTBAND_ABOVE_HIPS
@@ -553,12 +636,15 @@ def contact_sheet(tile_paths, columns, out_path):
     bpy.data.images.remove(image)
 
 
-def render_checks(body, masks, previews_dir):
+def render_checks(body, assets, masks, previews_dir):
     """One tile per region, grown to 100 with its area in red, from the front, back and side.
 
     The tiles run: the slim body, the 19 regions in the engine's order, then every region at 100.
+    Hair and eyes are left out: these pictures are about where each muscle is.
     """
     scene = bpy.context.scene
+    for asset in assets:
+        asset.hide_render = True
     camera = setup_render(scene, 300, 440)
     look_at = Vector((0.0, 0.0, body.dimensions.z / 2.0))
     keys = body.data.shape_keys.key_blocks
@@ -582,23 +668,56 @@ def render_checks(body, masks, previews_dir):
             tiles.append(scene.render.filepath)
         contact_sheet(tiles, 7, os.path.join(previews_dir, f"regions-{view}.png"))
 
-    return camera, look_at
+    for region in REGIONS:
+        keys[f"{region}_size"].value = 0.0
+    for asset in assets:
+        asset.hide_render = False
+    return camera
 
 
-def render_stance(body, camera, look_at, previews_dir):
-    """The exported stance, slim and fully grown, as larger pictures."""
+def render_look(body, camera, previews_dir):
+    """The finished character as it is exported: skin, eyes and hair, in the relaxed stance.
+
+    Rendered with Blender's own real-time engine, so it shows the materials the
+    file carries. The page lights it differently, so this is a check of the
+    character, not of how the page looks.
+    """
     scene = bpy.context.scene
-    scene.render.resolution_x = 520
-    scene.render.resolution_y = 760
+    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    world = bpy.data.worlds.new("studio")
+    world.use_nodes = True
+    world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.09, 0.1, 0.13, 1.0)
+    world.node_tree.nodes["Background"].inputs["Strength"].default_value = 1.2
+    scene.world = world
+    for name, tilt, turn, energy in (("key", 55, -35, 3.2), ("fill", 70, 60, 1.0), ("rim", 110, 170, 2.0)):
+        light = bpy.data.objects.new(name, bpy.data.lights.new(name, "SUN"))
+        light.data.energy = energy
+        light.rotation_euler = (math.radians(tilt), 0.0, math.radians(turn))
+        scene.collection.objects.link(light)
+
+    camera.data.type = "PERSP"
+    camera.data.lens = 85
     keys = body.data.shape_keys.key_blocks
-    paint(body, np.zeros(len(body.data.vertices)))
-    for label, value in (("slim", 0.0), ("grown", 1.0)):
-        for region in REGIONS:
-            keys[f"{region}_size"].value = value
-        for view, degrees in (("front", 0), ("back", 180)):
-            aim(camera, degrees, look_at)
-            scene.render.filepath = os.path.join(previews_dir, f"stance-{label}-{view}.png")
-            bpy.ops.render.render(write_still=True)
+    height = body.dimensions.z
+
+    def shoot(name, look_at, distance, degrees, width, height_px):
+        scene.render.resolution_x = width
+        scene.render.resolution_y = height_px
+        angle = math.radians(degrees)
+        camera.location = look_at + Vector((math.sin(angle) * distance, -math.cos(angle) * distance, 0.0))
+        camera.rotation_euler = (look_at - camera.location).to_track_quat("-Z", "Y").to_euler()
+        scene.render.filepath = os.path.join(previews_dir, f"look-{name}.png")
+        bpy.ops.render.render(write_still=True)
+
+    middle = Vector((0.0, 0.0, height / 2.0))
+    head = Vector((0.0, 0.0, height - 0.13))
+    shoot("face", head, 1.1, 0, 640, 640)
+    shoot("face-side", head, 1.1, 55, 640, 640)
+    shoot("slim-front", middle, 5.2, 0, 560, 820)
+    for region in REGIONS:
+        keys[f"{region}_size"].value = 1.0
+    shoot("grown-front", middle, 5.2, 0, 560, 820)
+    shoot("grown-back", middle, 5.2, 180, 560, 820)
     for region in REGIONS:
         keys[f"{region}_size"].value = 0.0
 
@@ -621,16 +740,23 @@ def relax_stance(rig):
     turn_bone(rig, "RightArm", "Y", -ARM_LOWERING)
 
 
-def export_glb(body, rig, out_path):
+def export_glb(body, assets, rig, out_path):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     mesh = body.data
     check_layer = mesh.color_attributes.get(CHECK_LAYER)
     if check_layer is not None:
         mesh.color_attributes.remove(check_layer)  # the checking colours must not ship in the file
 
+    # Custom properties are exported below, for the skin's average colour. MPFB
+    # leaves its own bookkeeping on the objects, which has no business in the file.
+    for obj in (body, rig, *assets):
+        for holder in (obj, obj.data):
+            for key in list(holder.keys()):
+                del holder[key]
+
     bpy.ops.object.select_all(action="DESELECT")
-    body.select_set(True)
-    rig.select_set(True)
+    for obj in (body, rig, *assets):
+        obj.select_set(True)
     bpy.context.view_layer.objects.active = rig
     bpy.ops.export_scene.gltf(
         filepath=out_path,
@@ -645,9 +771,11 @@ def export_glb(body, rig, out_path):
         export_morph_tangent=False,
         export_animations=False,
         export_materials="EXPORT",
+        export_image_format="WEBP",  # small, and keeps the see-through parts of hair and lashes
+        export_image_quality=IMAGE_QUALITY,
         export_cameras=False,
         export_lights=False,
-        export_extras=False,
+        export_extras=True,
     )
 
 
@@ -663,6 +791,7 @@ def main():
 
     body, base, growth, support = create_body()
     rig = HumanService.add_builtin_rig(body, RIG, import_weights=True)
+    assets = add_assets(body)
 
     keep = delete_helpers(body)
     coords = base[keep]
@@ -688,11 +817,11 @@ def main():
     print(f"REPORT points {len(body.data.vertices)}, faces {len(body.data.polygons)}, bones {len(rig.data.bones)}")
     print(f"REPORT height {body.dimensions.z:.3f} m, trunks faces {shorts_faces}")
 
-    camera, look_at = render_checks(body, masks, args.previews)
+    camera = render_checks(body, assets, masks, args.previews)
     relax_stance(rig)
-    render_stance(body, camera, look_at, args.previews)
+    render_look(body, camera, args.previews)
 
-    export_glb(body, rig, args.out)
+    export_glb(body, assets, rig, args.out)
     print(f"REPORT wrote {args.out} ({os.path.getsize(args.out) / 1024:.0f} kB)")
     print("DONE")
 

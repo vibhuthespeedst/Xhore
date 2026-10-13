@@ -13,9 +13,14 @@ function sizeShapeName(regionId: RegionId): string {
 }
 
 const SKIN_MATERIAL = 'skin'
+const EYES_MATERIAL = 'eyes'
 /** Definition shows as skin that goes from soft and matte to tight and glossy. */
-const SOFT_ROUGHNESS = 0.72
+const SOFT_ROUGHNESS = 0.68
 const CUT_ROUGHNESS = 0.4
+/** Eyes are wet, so they catch a sharp glint of light. */
+const EYE_ROUGHNESS = 0.12
+/** Hair, eyebrows and eyelashes are flat cards. Texels more see-through than this are not drawn. */
+const CUT_OUT_THRESHOLD = 0.45
 const HIGHLIGHT_COLOUR = '#ff6b35'
 const HIGHLIGHT_STRENGTH = 0.9
 const HIGHLIGHT_ATTRIBUTE = 'highlight'
@@ -60,17 +65,61 @@ function addHighlightGlow(material: MeshStandardMaterial): void {
 }
 
 /**
+ * Sets up a material that came out of the body file for drawing in real time.
+ * The file marks eyes, hair, eyebrows and eyelashes as see-through, which is
+ * right for a slow offline render and wrong here: see-through surfaces are
+ * drawn without depth, so hair would show through itself and the head.
+ */
+function prepareMaterial(material: MeshStandardMaterial): void {
+  if (material.name === EYES_MATERIAL) {
+    material.transparent = false
+    material.alphaTest = 0
+    material.depthWrite = true
+    material.roughness = EYE_ROUGHNESS
+  } else if (material.transparent || material.alphaTest > 0) {
+    // Draw the card solid and cut away its empty parts instead. Coverage
+    // blending softens the cut edge where the screen supports it.
+    material.transparent = false
+    material.alphaTest = CUT_OUT_THRESHOLD
+    material.alphaToCoverage = true
+    material.depthWrite = true
+  }
+}
+
+function materialsOf(mesh: Mesh): MeshStandardMaterial[] {
+  const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+  return materials.filter(
+    (material): material is MeshStandardMaterial => material instanceof MeshStandardMaterial,
+  )
+}
+
+/**
  * Wraps a loaded body file as a body. The file must hold one shape per region,
- * named "<region>_size"; anything else about it (skeleton, materials, how many
- * meshes it is split into) is free to change.
+ * named "<region>_size", on every mesh that grows. Anything else about it
+ * (skeleton, materials, hair and eyes, how many meshes it is split into) is
+ * free to change.
  */
 export function createModelBody(root: Object3D): AvatarBody {
   const parts: Part[] = []
   const skinMaterials = new Set<MeshStandardMaterial>()
+  const glowMaterials = new Set<MeshStandardMaterial>()
   const allMaterials = new Set<MeshStandardMaterial>()
+  const meshes: Mesh[] = []
 
   root.traverse((child) => {
     if (!(child instanceof Mesh)) return
+    meshes.push(child)
+    child.castShadow = true
+    // The shapes and the skeleton move points beyond the box three.js measures at rest.
+    child.frustumCulled = false
+
+    for (const material of materialsOf(child)) {
+      if (!allMaterials.has(material)) prepareMaterial(material)
+      allMaterials.add(material)
+    }
+
+    // Only the meshes that carry muscle shapes grow, glow and take a skin tone.
+    // Eyes and hair are along for the ride.
     const names = child.morphTargetDictionary
     if (!names || !child.morphTargetInfluences) return
 
@@ -86,16 +135,12 @@ export function createModelBody(root: Object3D): AvatarBody {
     const highlight = new BufferAttribute(new Float32Array(pointCount), 1)
     child.geometry.setAttribute(HIGHLIGHT_ATTRIBUTE, highlight)
 
-    for (const material of Array.isArray(child.material) ? child.material : [child.material]) {
-      if (!(material instanceof MeshStandardMaterial)) continue
-      if (!allMaterials.has(material)) addHighlightGlow(material)
-      allMaterials.add(material)
+    for (const material of materialsOf(child)) {
+      if (!glowMaterials.has(material)) addHighlightGlow(material)
+      glowMaterials.add(material)
       if (material.name === SKIN_MATERIAL) skinMaterials.add(material)
     }
 
-    child.castShadow = true
-    // The shapes and the skeleton move points beyond the box three.js measures at rest.
-    child.frustumCulled = false
     parts.push({ mesh: child, shapeIndex, highlight })
   })
 
@@ -128,7 +173,22 @@ export function createModelBody(root: Object3D): AvatarBody {
     },
 
     setSkinTone(colour: ColorRepresentation): void {
-      for (const material of skinMaterials) material.color.set(colour)
+      const tone = new Color(colour)
+      for (const material of skinMaterials) {
+        // The skin is a photograph with a colour of its own. The file records
+        // that picture's average colour, so dividing by it gives the tint that
+        // makes the skin come out, on average, the colour that was asked for.
+        const average = material.userData.skin_average as readonly number[] | undefined
+        if (average?.length === 3 && average.every((channel) => channel > 0)) {
+          material.color.setRGB(
+            tone.r / (average[0] ?? 1),
+            tone.g / (average[1] ?? 1),
+            tone.b / (average[2] ?? 1),
+          )
+        } else {
+          material.color.copy(tone)
+        }
+      }
     },
 
     highlightRegion(regionId: RegionId | null): void {
@@ -165,8 +225,11 @@ export function createModelBody(root: Object3D): AvatarBody {
 
     dispose(): void {
       root.removeFromParent()
-      for (const part of parts) part.mesh.geometry.dispose()
-      for (const material of allMaterials) material.dispose()
+      for (const mesh of meshes) mesh.geometry.dispose()
+      for (const material of allMaterials) {
+        material.map?.dispose()
+        material.dispose()
+      }
     },
   }
 }

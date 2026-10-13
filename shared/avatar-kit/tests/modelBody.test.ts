@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
-import { Box3, Mesh, MeshStandardMaterial, Scene } from 'three'
+import { describe, expect, it, vi } from 'vitest'
+import { Box3, Color, Mesh, MeshStandardMaterial, Scene } from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { REGION_IDS, regionRecord } from '@xhore/engine'
 import type { RegionId } from '@xhore/engine'
@@ -12,6 +12,13 @@ import { createModelBody } from '../src/modelBody.js'
  * engine drifting apart, for example a region added to one and not the other.
  */
 const file = readFileSync(new URL('../assets/body-male.glb', import.meta.url))
+
+// The file carries pictures for the skin, eyes and hair, and loading them
+// leans on two things only a browser has. Node cannot decode pictures and
+// these tests never look at one, so a decoder that hands back an empty picture
+// is enough, along with the browser's name for the global object.
+vi.stubGlobal('self', globalThis)
+vi.stubGlobal('createImageBitmap', async () => ({ width: 1, height: 1, close: () => {} }))
 
 async function loadBody(): Promise<AvatarBody> {
   const bytes = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength) as ArrayBuffer
@@ -49,6 +56,17 @@ function skinOf(body: AvatarBody): MeshStandardMaterial[] {
     .filter((material) => material.name === 'skin')
 }
 
+/** Every material in the body, by name: skin, trunks, eyes, hair and so on. */
+function materialsByName(body: AvatarBody): Map<string, MeshStandardMaterial> {
+  const found = new Map<string, MeshStandardMaterial>()
+  body.object.traverse((child) => {
+    if (child instanceof Mesh && child.material instanceof MeshStandardMaterial) {
+      found.set(child.material.name, child.material)
+    }
+  })
+  return found
+}
+
 describe('the body file', () => {
   it('holds a shape for every region the growth engine knows', async () => {
     const body = await loadBody()
@@ -59,6 +77,30 @@ describe('the body file', () => {
       }
     }
     expect(meshesOf(body).length).toBeGreaterThan(0)
+  })
+
+  it('has a photographic skin, eyes, eyebrows, eyelashes and hair', async () => {
+    const materials = materialsByName(await loadBody())
+    for (const name of ['skin', 'shorts', 'eyes', 'eyebrows', 'eyelashes', 'hair']) {
+      expect([...materials.keys()]).toContain(name)
+    }
+    expect(materials.get('skin')?.map).toBeTruthy()
+    expect(materials.get('shorts')?.map).toBeNull()
+  })
+
+  it('draws hair, eyebrows and eyelashes as solid cut-outs, and the eyes solid and glossy', async () => {
+    const materials = materialsByName(await loadBody())
+    for (const name of ['eyebrows', 'eyelashes', 'hair']) {
+      const material = materials.get(name)
+      // See-through surfaces are drawn without depth, so hair would show through the head.
+      expect(material?.transparent).toBe(false)
+      expect(material?.alphaTest).toBeGreaterThan(0)
+      expect(material?.depthWrite).toBe(true)
+    }
+    const eyes = materials.get('eyes')
+    expect(eyes?.transparent).toBe(false)
+    expect(eyes?.alphaTest).toBe(0)
+    expect(eyes?.roughness).toBeLessThan(0.3)
   })
 
   it('stands on the ground and is the height of a person', async () => {
@@ -126,23 +168,27 @@ describe('the body file', () => {
     }
   })
 
-  it('recolours the skin and leaves the trunks alone', async () => {
+  it('tints the skin so that it averages the tone asked for, and leaves everything else alone', async () => {
     const body = await loadBody()
-    const trunks = meshesOf(body)
-      .map((mesh) => mesh.material)
-      .filter((material): material is MeshStandardMaterial => material instanceof MeshStandardMaterial)
-      .filter((material) => material.name === 'shorts')
-    const trunksBefore = trunks.map((material) => material.color.getHexString())
+    const others = [...materialsByName(body).values()].filter((material) => material.name !== 'skin')
+    const othersBefore = others.map((material) => material.color.getHexString())
     const skinBefore = skinOf(body).map((material) => material.color.getHexString())
 
     body.setSkinTone('#5c3a21')
 
+    const tone = new Color('#5c3a21')
     expect(skinOf(body).length).toBeGreaterThan(0)
     skinOf(body).forEach((material, index) => {
-      expect(material.color.getHexString()).toBe('5c3a21')
+      // The skin is a picture with its own colour. Tint times the picture's
+      // average colour should come out as the tone that was asked for.
+      const average = material.userData.skin_average as number[]
+      expect(average).toHaveLength(3)
+      expect(material.color.r * (average[0] ?? 0)).toBeCloseTo(tone.r, 5)
+      expect(material.color.g * (average[1] ?? 0)).toBeCloseTo(tone.g, 5)
+      expect(material.color.b * (average[2] ?? 0)).toBeCloseTo(tone.b, 5)
       expect(material.color.getHexString()).not.toBe(skinBefore[index])
     })
-    expect(trunks.map((material) => material.color.getHexString())).toEqual(trunksBefore)
+    expect(others.map((material) => material.color.getHexString())).toEqual(othersBefore)
   })
 
   it('removes itself from the scene when disposed', async () => {

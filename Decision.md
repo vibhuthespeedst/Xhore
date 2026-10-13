@@ -11,7 +11,7 @@ Every decision made on this project, in the order it was made. Look here to find
 
 ## Waiting on a decision
 
-Q-1, Q-2, Q-3, Q-5, Q-7 and Q-8 are settled. See D-028 to D-031, D-033 and D-043.
+Q-1, Q-2, Q-3, Q-5, Q-7, Q-8 and Q-11 are settled. See D-028 to D-031, D-033, D-043 and D-051.
 
 **Q-4: Do players get a face made from a selfie?**
 - Recommendation: treat it as a separate optional feature for later. Fitting a ready-made head onto our muscle body is not straightforward.
@@ -32,16 +32,16 @@ Q-1, Q-2, Q-3, Q-5, Q-7 and Q-8 are settled. See D-028 to D-031, D-033 and D-043
 - Recommendation: a kicking style, either kickboxing or taekwondo, so that leg training has a style that rewards it. The choice between the two is made once we see which free kick animations look best.
 - Needed by: after the first style works.
 
-**Q-11: Do we give the body a detailed skin, eyes and hair from MPFB's free asset pack?**
-- Background: the first body has plain-coloured skin, blank eyes and no hair, so it reads as a mannequin. MPFB's makers publish a free pack of skins, eyes, eyebrows and hair that may be used commercially.
-- Recommendation: yes. It is the biggest single improvement to how the avatar looks, and a detailed skin is also what lets definition show muscle by muscle.
-- What it needs: the owner's OK for one more free download into `E:\XhoreTools`. Its size has not been checked yet.
-- Needed by: step 13.
-
 **Q-12: When do we add a female body?**
 - Background: the build script makes one male body. The same script can make a female body from different settings, and MPFB has the shapes for it.
 - Recommendation: after the fight replay works, so the whole loop is proven on one body first.
 - Needed by: before anyone outside the project tries the prototype.
+
+**Q-13: How should the detailed exercise list be organised?**
+- Background: the spec has 14 exercises, each with one main muscle and some helpers. The owner wants far more, including variations of the same movement such as hammer curls and dumbbell curls (D-050).
+- Recommendation: group variations under a base movement, and give each variation its own muscle numbers, because they do differ. A hammer curl, for example, works the forearms more than an ordinary curl does. Add them a body part at a time, with a test for each.
+- What the owner needs to say: roughly how many exercises to aim for, and whether gym machines and cable exercises are included alongside free weights.
+- Needed by: step 16.
 
 ## Decided
 
@@ -98,3 +98,7 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-047 | 2026-10-09 | The body's skeleton uses the standard Mixamo bone names, and the file stores a relaxed stance with the arms lowered 24 degrees from MPFB's A-pose. | So free Mixamo fight animations fit later, and the avatar stands naturally before any animation exists. | Active |
 | D-048 | 2026-10-09 | On the real body, definition is shown for the body as a whole, as glossier skin, using the average of all regions. Showing it muscle by muscle waits for the detailed skin (Q-11). | A plain-coloured skin has nowhere to show sharper muscle lines for one region at a time. | Active |
 | D-049 | 2026-10-09 | The pipeline's checking pictures are kept in the project history. The single tiles they are assembled from are not. | The pictures are the record that every region was looked at, and they show the owner what each region does. | Active |
+| D-050 | 2026-10-09 | The owner's order of work: make the avatar very realistic first, one thing at a time. After that, make the exercise list far more detailed, with variations such as hammer curls and dumbbell curls. | The owner looked at the first body and found it "okay only": dull and robot-like. | Active |
+| D-051 | 2026-10-09 | The body gets a photographic skin, eyes, eyebrows, eyelashes and hair from MPFB's free "makehuman_system_assets" pack, which is kept in `E:\XhoreTools`. This settles Q-11. | The owner asked for it. The pack is in the public domain, so it may be used in a commercial game. | Active |
+| D-052 | 2026-10-09 | A skin tone is applied by tinting the photographic skin so that it averages the chosen colour. The body file records the skin picture's average colour for this. One skin picture serves every tone for now. | A photograph already has a colour of its own, and painting a flat colour over it would throw its detail away. The asset pack also has a dark-skinned picture, which darker tones can switch to later. | Active |
+| D-053 | 2026-10-09 | Hair, eyebrows and eyelashes are drawn as solid cut-outs rather than as see-through surfaces. | See-through surfaces are drawn without depth, so hair would show through itself and through the head. | Active |
