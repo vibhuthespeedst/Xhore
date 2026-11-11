@@ -1,9 +1,10 @@
-import { Box3, BufferAttribute, Color, Mesh, MeshStandardMaterial } from 'three'
+import { Box3, BufferAttribute, Color, Mesh, MeshStandardMaterial, Quaternion, Vector3 } from 'three'
 import type { ColorRepresentation, Object3D } from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { REGION_IDS, regionRecord } from '@xhore/engine'
 import type { RegionId } from '@xhore/engine'
 import type { AvatarBody } from './body.js'
+import { breathingPose } from './breathing.js'
 import { lerp, scoreToStrength } from './scores.js'
 import type { RegionScores } from './scores.js'
 
@@ -36,6 +37,49 @@ interface Part {
   readonly shapeIndex: Readonly<Record<RegionId, number>>
   /** One number per point: how strongly it glows while a region is lit up. */
   readonly highlight: BufferAttribute
+}
+
+/** The skeleton's bones are named like "mixamorig:Spine2" in the file. three.js drops the colon when loading. */
+const BONE_PREFIX = 'mixamorig'
+/** The body's own directions: x runs towards its left side, z the way it faces. */
+const BODY_X = new Vector3(1, 0, 0)
+const BODY_Z = new Vector3(0, 0, 1)
+
+interface RestingBone {
+  readonly bone: Object3D
+  /** The bone's turn relative to its parent, as the file stores it. */
+  readonly rest: Quaternion
+  /** The bone's turn relative to the whole body, as the file stores it. */
+  readonly restInBody: Quaternion
+}
+
+/** Finds a bone and remembers how it rests. Null if the file has no such bone. */
+function findBone(root: Object3D, name: string): RestingBone | null {
+  const bone = root.getObjectByName(BONE_PREFIX + name)
+  if (!bone) return null
+  const intoBody = root.getWorldQuaternion(new Quaternion()).invert()
+  return {
+    bone,
+    rest: bone.quaternion.clone(),
+    restInBody: bone.getWorldQuaternion(new Quaternion()).premultiply(intoBody).normalize(),
+  }
+}
+
+const bodyTurn = new Quaternion()
+const ownTurn = new Quaternion()
+
+/**
+ * Turns a bone away from how it rests, by `forward` radians tipping it the way
+ * the body faces and `anticlockwise` radians as seen from in front of the body.
+ * Both are measured in the body's own directions, so every bone in the chain
+ * can be posed the same way however the file has oriented it.
+ */
+function poseBone(resting: RestingBone | null, forward: number, anticlockwise: number): void {
+  if (!resting) return
+  bodyTurn.setFromAxisAngle(BODY_X, forward).multiply(ownTurn.setFromAxisAngle(BODY_Z, anticlockwise))
+  // The same turn, expressed in the bone's own directions instead of the body's.
+  ownTurn.copy(resting.restInBody).invert().multiply(bodyTurn).multiply(resting.restInBody)
+  resting.bone.quaternion.copy(resting.rest).multiply(ownTurn)
 }
 
 /**
@@ -154,6 +198,15 @@ export function createModelBody(root: Object3D): AvatarBody {
   root.updateMatrixWorld(true)
   const height = new Box3().setFromObject(root).max.y
 
+  // The bones that move while the body breathes. The hips, legs and feet are
+  // left alone, so the feet never slide on the floor.
+  const spine = [findBone(root, 'Spine1'), findBone(root, 'Spine2')]
+  const neck = findBone(root, 'Neck')
+  const leftShoulder = findBone(root, 'LeftShoulder')
+  const rightShoulder = findBone(root, 'RightShoulder')
+  const leftArm = findBone(root, 'LeftArm')
+  const rightArm = findBone(root, 'RightArm')
+
   return {
     object: root,
     height,
@@ -226,6 +279,20 @@ export function createModelBody(root: Object3D): AvatarBody {
         }
         part.highlight.needsUpdate = true
       }
+    },
+
+    breathe(seconds: number): void {
+      const { chestLift, shoulderLift, sway } = breathingPose(seconds)
+      // The two spine bones share the lean back and the sway.
+      for (const bone of spine) poseBone(bone, -chestLift / 2, sway / 2)
+      // The neck undoes them, so the head stays level and the eyes look ahead.
+      poseBone(neck, chestLift, -sway)
+      // Raising the left shoulder turns it anticlockwise as seen from the front; the right one turns the other way.
+      poseBone(leftShoulder, 0, shoulderLift)
+      poseBone(rightShoulder, 0, -shoulderLift)
+      // The arms undo the shoulders' turn, so they rise with them but still hang straight down.
+      poseBone(leftArm, 0, -shoulderLift)
+      poseBone(rightArm, 0, shoulderLift)
     },
 
     dispose(): void {

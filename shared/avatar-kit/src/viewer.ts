@@ -33,6 +33,11 @@ export interface AvatarViewerOptions {
   readonly scores?: RegionScores
   /** Colour of the ring the body stands in. */
   readonly ringColour?: ColorRepresentation
+  /**
+   * Whether the body breathes while it stands. On unless switched off here,
+   * and always off for a person whose device asks for reduced motion.
+   */
+  readonly breathing?: boolean
 }
 
 export interface AvatarViewer {
@@ -91,8 +96,9 @@ interface ViewGoal {
 
 /**
  * Puts a body on screen inside `container`: a lit scene, a camera that can be
- * dragged around the body, and a draw loop that only works when something has
- * changed. The container decides the size; the viewer fills it.
+ * dragged around the body, and a draw loop that only works while the body is
+ * breathing or something has changed. The container decides the size; the
+ * viewer fills it.
  */
 export function mountAvatarViewer(
   container: HTMLElement,
@@ -288,6 +294,10 @@ export function mountAvatarViewer(
   const observer = new ResizeObserver(resize)
   observer.observe(container)
 
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  const breathing = (options.breathing ?? true) && !reducedMotion
+  let breathSeconds = 0
+
   let frame = 0
   let previous = performance.now()
 
@@ -299,7 +309,11 @@ export function mountAvatarViewer(
     const scoresMoved = stepScores(seconds)
     const viewMoved = stepView(seconds)
     const cameraMoved = controls.update()
-    if (!dirty && !scoresMoved && !viewMoved && !cameraMoved) return
+    if (breathing) {
+      breathSeconds += seconds
+      body.breathe(breathSeconds)
+    }
+    if (!breathing && !dirty && !scoresMoved && !viewMoved && !cameraMoved) return
 
     lightRig.rotation.y = Math.atan2(camera.position.x - focus.x, camera.position.z - focus.z)
     scene.environmentRotation.y = lightRig.rotation.y
@@ -340,6 +354,8 @@ export function mountAvatarViewer(
 
     dispose(): void {
       cancelAnimationFrame(frame)
+      // Hand the body back in its resting stance.
+      body.breathe(0)
       observer.disconnect()
       controls.removeEventListener('start', cancelViewGoal)
       controls.dispose()

@@ -212,6 +212,16 @@ describe('stand-in body', () => {
     body.dispose()
     expect(scene.children).toHaveLength(0)
   })
+
+  it('stands still when asked to breathe, having no skeleton', () => {
+    const body = createStandInBody()
+    body.applyScores(scores(40))
+    body.object.updateMatrixWorld(true)
+    const before = meshesOf(body).map((mesh) => [...mesh.matrixWorld.elements])
+    body.breathe(2.25)
+    body.object.updateMatrixWorld(true)
+    expect(meshesOf(body).map((mesh) => [...mesh.matrixWorld.elements])).toEqual(before)
+  })
 })
 
 describe('loadAvatarBody', () => {

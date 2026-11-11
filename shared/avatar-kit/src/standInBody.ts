@@ -167,6 +167,10 @@ export function createStandInBody(): AvatarBody {
       for (const piece of pieces) paint(piece)
     },
 
+    breathe(): void {
+      // The stand-in has no skeleton to move, so it stands still.
+    },
+
     dispose(): void {
       root.removeFromParent()
       ball.dispose()

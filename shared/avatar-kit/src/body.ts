@@ -24,6 +24,12 @@ export interface AvatarBody {
   setSkinTone(colour: ColorRepresentation): void
   /** Lights up one region so a person can see where it is on the body. Null clears it. */
   highlightRegion(regionId: RegionId | null): void
+  /**
+   * Puts the body in its idle pose `seconds` into a slow breath and a slight
+   * sway. At 0 it is back in its resting stance. A body with no skeleton
+   * stands still.
+   */
+  breathe(seconds: number): void
   /** Frees the body's graphics resources. The body must not be used afterwards. */
   dispose(): void
 }

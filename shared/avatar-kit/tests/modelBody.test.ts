@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
-import { Box3, Color, Mesh, MeshStandardMaterial, Scene } from 'three'
+import { Box3, Color, MathUtils, Mesh, MeshStandardMaterial, Quaternion, Scene, Vector3 } from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { REGION_IDS, regionRecord } from '@xhore/engine'
 import type { RegionId } from '@xhore/engine'
 import type { AvatarBody, RegionScores } from '../src/index.js'
+import { BREATH_SECONDS } from '../src/breathing.js'
 import { createModelBody } from '../src/modelBody.js'
 
 /**
@@ -109,6 +110,48 @@ describe('the body file', () => {
       if (!(child instanceof Mesh)) return
       expect(child.castShadow).toBe(true)
       expect(child.receiveShadow).toBe(true)
+    })
+  })
+
+  it('breathes by lifting its chest and shoulders, with its feet still and its head level', async () => {
+    const body = await loadBody()
+    const bone = (name: string) => {
+      const found = body.object.getObjectByName(`mixamorig${name}`)
+      if (!found) throw new Error(`the body file has no bone named ${name}`)
+      return found
+    }
+    const where = (name: string) => bone(name).getWorldPosition(new Vector3())
+    const facing = (name: string) => bone(name).getWorldQuaternion(new Quaternion())
+    const leftFoot = where('LeftFoot')
+    const rightFoot = where('RightFoot')
+    const leftShoulder = where('LeftArm')
+    const rightShoulder = where('RightArm')
+    const neck = where('Neck')
+    const head = facing('Head')
+
+    // Lungs full, and swayed most of the way to one side.
+    body.breathe(BREATH_SECONDS / 2)
+
+    expect(where('LeftFoot').distanceTo(leftFoot)).toBeLessThan(1e-6)
+    expect(where('RightFoot').distanceTo(rightFoot)).toBeLessThan(1e-6)
+    for (const rise of [where('LeftArm').y - leftShoulder.y, where('RightArm').y - rightShoulder.y]) {
+      expect(rise).toBeGreaterThan(0.002)
+      expect(rise).toBeLessThan(0.03)
+    }
+    expect(where('Neck').distanceTo(neck)).toBeGreaterThan(0.002)
+    expect(MathUtils.radToDeg(facing('Head').angleTo(head))).toBeLessThan(0.5)
+  })
+
+  it('is back in its resting stance at the start of every breath', async () => {
+    const body = await loadBody()
+    const resting = new Map<string, Quaternion>()
+    body.object.traverse((child) => resting.set(child.uuid, child.quaternion.clone()))
+
+    body.breathe(1.3)
+    body.breathe(0)
+    body.object.traverse((child) => {
+      const rest = resting.get(child.uuid)?.toArray() ?? []
+      child.quaternion.toArray().forEach((part, index) => expect(part).toBeCloseTo(rest[index] ?? Number.NaN, 6))
     })
   })
 

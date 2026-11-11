@@ -6,7 +6,7 @@ What we are building, the order we are building it in, how the parts connect, an
 
 *Last updated: 2026-11-12*
 
-Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair, and since 2026-11-12 better lighting, so the skin looks less like plastic and the muscle shapes show. The owner has asked for the avatar to be made as realistic as possible before anything else, so that work continues with a breathing stance. All 262 automated tests pass. The design for the avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md).
+Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair. Since 2026-11-12 it has better lighting, so the skin looks less like plastic and the muscle shapes show, and it breathes, so it no longer stands like a statue. The owner has asked for the avatar to be made as realistic as possible before anything else, so that work continues with muscle definition. All 270 automated tests pass. The design for the avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md).
 
 ## Waiting on the owner
 
@@ -46,7 +46,7 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 12 | Replay a fight between two avatars | Not started | Needs fight animations |
 | 13 | Give the body a detailed skin, eyes and hair | Done 2026-10-09 | From MPFB's free asset pack |
 | 14 | Show definition muscle by muscle, with sharper muscle lines | Not started | Part of the owner's request to make the avatar realistic |
-| 15 | Better lighting, and a breathing stance so the avatar does not stand like a statue | In progress | Part of the same request. Lighting done 2026-11-12. The breathing stance is next. |
+| 15 | Better lighting, and a breathing stance so the avatar does not stand like a statue | Done 2026-11-12 | Part of the same request. The breathing is made in code, and it stops for people whose device asks for reduced motion. |
 | 16 | Make the exercise list far more detailed, with variations such as hammer curls and dumbbell curls | Not started | The owner's request. It comes after the avatar. Needs Q-13 settled. |
 
 The owner's order of work, set on 2026-10-09: finish the avatar properly first (steps 14 and 15), then the exercise list (step 16), then the remaining steps above.
@@ -104,13 +104,14 @@ All of these are built. Their tests live in [shared/avatar-kit/tests/](shared/av
 
 | Part | What it does | File |
 | --- | --- | --- |
-| Body contract | Says what any body must be able to do: show scores, change skin tone, light up a region. The stand-in and the real body both follow it, which is why one can replace the other. | [body.ts](shared/avatar-kit/src/body.ts) |
+| Body contract | Says what any body must be able to do: show scores, change skin tone, light up a region, breathe. The stand-in and the real body both follow it, which is why one can replace the other. The stand-in has no skeleton, so it stands still instead of breathing. | [body.ts](shared/avatar-kit/src/body.ts) |
 | Scores | Turns a 0 to 100 score into a 0 to 1 strength for blending shapes. | [scores.ts](shared/avatar-kit/src/scores.ts) |
 | Stand-in shapes | The stand-in body as a list of numbers: where each shape sits, and how big it is at a score of 0 and at 100. | [standInLayout.ts](shared/avatar-kit/src/standInLayout.ts) |
 | Stand-in body | Builds the body from that list and reshapes it when scores change. It is shown only if the body file cannot be loaded. | [standInBody.ts](shared/avatar-kit/src/standInBody.ts) |
-| Real body | Wraps the loaded body file: sets each region's shape to its score, colours the skin, and lights up a region by making its points glow. | [modelBody.ts](shared/avatar-kit/src/modelBody.ts) |
+| Real body | Wraps the loaded body file: sets each region's shape to its score, colours the skin, lights up a region by making its points glow, and breathes by turning the chest, neck, shoulder and arm bones a degree or two. | [modelBody.ts](shared/avatar-kit/src/modelBody.ts) |
+| Breathing | Works out the idle pose from the time: a slow breath every 4.5 seconds that lifts the chest and shoulders, and a slight sway every 7.3 seconds. Only numbers, so it is tested without graphics. | [breathing.ts](shared/avatar-kit/src/breathing.ts) |
 | Body file | The body itself: about 13,500 points, a 52-bone skeleton with standard Mixamo names, one shape per region named like `calves_size`, a photographic skin, and separate small meshes for the eyes, eyebrows, eyelashes and hair. Made by the body pipeline, never edited by hand. | [body-male.glb](shared/avatar-kit/assets/body-male.glb) |
-| Viewer | Puts a body on screen: soft light from all round plus a key, rim and fill light that turn with the camera, soft shadows, a floor ring, a camera you can drag, and smooth easing when scores change. | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
+| Viewer | Puts a body on screen: soft light from all round plus a key, rim and fill light that turn with the camera, soft shadows, a floor ring, a camera you can drag, and smooth easing when scores change. It plays the breathing, unless switched off or the device asks for reduced motion. | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
 | Front door | The only file other parts import from. It also holds the one call that loads the body, which hands back the real body, or the stand-in if the file cannot be loaded. | [index.ts](shared/avatar-kit/src/index.ts) |
 
 ### Inside the body pipeline
@@ -195,6 +196,8 @@ Steps 2 and 3 are built today. Step 1 is simulated for now, and steps 4 and 5 ar
 | Change how definition looks, or the highlight colour, on the real body | The settings at the top of [modelBody.ts](shared/avatar-kit/src/modelBody.ts) |
 | Change the stand-in body's shape or proportions | [standInLayout.ts](shared/avatar-kit/src/standInLayout.ts). Every shape is one line of numbers. |
 | Change the lighting, the camera or the floor ring | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
+| Change how fast or how much the avatar breathes and sways | The numbers at the top of [breathing.ts](shared/avatar-kit/src/breathing.ts) |
+| Switch the breathing off | Pass `breathing: false` where [AvatarView.tsx](prototype/src/features/avatar-view/AvatarView.tsx) calls `mountAvatarViewer` |
 | Change the skin tones on offer, or the view buttons | [AvatarView.tsx](prototype/src/features/avatar-view/AvatarView.tsx) |
 | Change what a simulated week of training contains | [simulate.ts](prototype/src/features/quick-sim/simulate.ts) |
 | Change a muscle's display name | `REGION_LABELS` in [regions.ts](engine/src/regions.ts) |
@@ -212,7 +215,7 @@ Type these in the terminal from the project folder.
 
 | Command | What it does |
 | --- | --- |
-| `npm test` | Runs every test: 173 for the growth engine, then 89 for the avatar kit. Both groups should say "passed". |
+| `npm test` | Runs every test: 173 for the growth engine, then 97 for the avatar kit. Both groups should say "passed". |
 | `npm run build:body` | Rebuilds the 3D body file and its checking pictures with Blender. It takes about a minute and needs Blender in `E:\XhoreTools`. Only needed after changing the build script. |
 | `npm run curve` | Prints a week-by-week table of how one muscle grows for a beginner. |
 | `npm run dev` | Starts the prototype page. It prints an address, normally `http://localhost:5173`. Open that in your browser. Press `Ctrl+C` in the terminal to stop it. |
@@ -225,6 +228,9 @@ Newest first.
 - **2026-11-12:**
   - Step 15, first half: the lighting. The body is now lit by soft light from all round, as in a photo studio, made in code so nothing is downloaded, plus a warm key light set higher, so the top of each muscle is lit and the underside shaded. Shadows are softer, and the body now shades itself, under the chest and the arms for example. Skin at full definition is less glossy than before (D-054).
   - Checked by taking pictures of the page before and after: the whole body from the front and back, and close-ups of the face and chest. Four colour settings were compared side by side; the chosen one gave the most natural skin. Before, the skin shone like plastic; now it reads as skin, and the chest, shoulders and back show their shape.
+  - On Windows, the browser's developer console now shows a warning ("X4122") once when the page opens. It comes from three.js's own code that makes the soft light, and changes nothing on screen.
+  - Step 15 done: the avatar breathes. Every 4.5 seconds the chest lifts and the shoulders rise a few millimetres, and the upper body sways slightly every 7.3 seconds. It is worked out in code from the time and turns a few bones of the skeleton, so no animation file is needed (D-055). The hips, legs and feet never move, so the feet never slide, and the neck keeps the head level. People whose device asks for reduced motion get a still avatar.
+  - Checked in the browser by comparing two pictures taken half a breath apart: only the head, shoulders, arms and chest moved, and nothing below the waist. With reduced motion switched on, the two pictures were identical. Eight new tests cover the breathing.
 - **2026-10-09:**
   - Step 13 done: the body has a photographic skin, brown eyes, eyebrows, eyelashes and short black hair, all from MPFB's free asset pack (268 MB, public domain, unpacked into `E:\XhoreTools`). The textures added only 0.6 MB to the body file. Skin tones now tint the photographic skin instead of painting a flat colour. Checked on the page in four skin tones.
   - The owner looked at the first body and said it was only okay: dull and robot-like. The owner asked for the avatar to be made very realistic before anything else, and for the exercise list to become far more detailed afterwards (D-050).
@@ -242,8 +248,7 @@ Newest first.
 
 ## Next up
 
-1. A breathing stance, so the avatar does not stand like a statue (the rest of step 15).
+1. The owner looks at the avatar again and says what should still change.
 2. Show definition muscle by muscle, with sharper muscle lines (step 14).
-3. The owner looks at the avatar again and says what should still change.
-4. Settle Q-13, then make the exercise list far more detailed (step 16).
-5. Settle Q-6, then add set logging to the page (step 5).
+3. Settle Q-13, then make the exercise list far more detailed (step 16).
+4. Settle Q-6, then add set logging to the page (step 5).

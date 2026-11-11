@@ -203,6 +203,7 @@ For whoever changes the script. These were all learned by building it.
 - apply an avatar's scores to it,
 - set the skin tone,
 - light up one region, so a person can see where it is,
+- breathe while it stands, so it never stands like a statue,
 - play a named animation (not built yet).
 
 It never works out a score. It only displays the ones it is given.
@@ -221,6 +222,8 @@ Muscles change once a week, so before a fight the kit will work the muscle shape
 | Quaternius Universal Animation Library | Free for any use, and may be shared. | A smaller set of combat moves. Part is free and the rest is paid. |
 
 A script converts each animation into the same file format as the body.
+
+The idle breathing needs no animation file. The avatar kit works it out from the time and turns the chest, neck, shoulder and arm bones a degree or two (D-055). The hips, legs and feet are left alone, so the feet never slide, and the neck undoes the chest's tilt so the head stays level. A body without a skeleton, such as the stand-in, simply stands still.
 
 ## 6. The arena fight game
 
