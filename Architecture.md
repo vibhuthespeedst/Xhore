@@ -209,7 +209,7 @@ It never works out a score. It only displays the ones it is given.
 
 Every body follows one contract, so screens and games ask the kit for "the body" and never name which kind (D-040). The kit hands back the real body from the body file. If that file cannot be loaded, it hands back a stand-in built in code from simple shapes instead, so the avatar is never simply missing (D-046). The stand-in was built first, and the real body replaced it without any change to the avatar screen's own logic.
 
-The kit also has a ready-made viewer: lights, a floor ring, a camera that can be dragged round the body, and easing so that growth is seen happening. The avatar screen uses it. A game brings its own scene and uses only the body.
+The kit also has a ready-made viewer: lights, a floor ring, a camera that can be dragged round the body, and easing so that growth is seen happening. The lighting is soft light from all round, made in code, plus a high key light, a rim light and a fill light that turn with the camera, so the side being looked at is always the lit side. Shadows are soft, and the body shades itself (D-054). The avatar screen uses it. A game brings its own scene and uses only the body.
 
 Muscles change once a week, so before a fight the kit will work the muscle shapes into the real body once. A fight then costs the same as animating a plain body.
 

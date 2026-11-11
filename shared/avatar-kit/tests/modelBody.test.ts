@@ -103,6 +103,15 @@ describe('the body file', () => {
     expect(eyes?.roughness).toBeLessThan(0.3)
   })
 
+  it('casts shadows and shades itself', async () => {
+    const body = await loadBody()
+    body.object.traverse((child) => {
+      if (!(child instanceof Mesh)) return
+      expect(child.castShadow).toBe(true)
+      expect(child.receiveShadow).toBe(true)
+    })
+  })
+
   it('stands on the ground and is the height of a person', async () => {
     const body = await loadBody()
     const box = new Box3().setFromObject(body.object)

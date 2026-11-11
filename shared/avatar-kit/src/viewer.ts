@@ -1,5 +1,4 @@
 import {
-  ACESFilmicToneMapping,
   CircleGeometry,
   DirectionalLight,
   Group,
@@ -7,7 +6,9 @@ import {
   MathUtils,
   Mesh,
   MeshBasicMaterial,
+  NeutralToneMapping,
   PerspectiveCamera,
+  PMREMGenerator,
   RingGeometry,
   Scene,
   ShadowMaterial,
@@ -17,6 +18,7 @@ import {
 } from 'three'
 import type { ColorRepresentation } from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { REGION_IDS, regionRecord } from '@xhore/engine'
 import type { RegionId } from '@xhore/engine'
 import type { AvatarBody } from './body.js'
@@ -62,6 +64,12 @@ const VIEW_EASE = 6
 const MAX_STEP = 0.1
 const HOME_POLAR = Math.PI / 2 - 0.06
 const DEFAULT_RING_COLOUR = '#ff6b35'
+/** How strongly the soft light from all round shows, next to the lights aimed at the body. */
+const ROOM_LIGHT = 0.25
+/** Overall brightness. Below 1 because the room light adds to the lights aimed at the body. */
+const EXPOSURE = 0.8
+/** How far shadow edges are blurred, in shadow-map texels. */
+const SHADOW_SOFTNESS = 4
 
 const VIEW_AZIMUTH: Readonly<Record<ViewName, number>> = {
   front: 0,
@@ -94,7 +102,9 @@ export function mountAvatarViewer(
 
   const renderer = new WebGLRenderer({ antialias: true, alpha: true })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO))
-  renderer.toneMapping = ACESFilmicToneMapping
+  // Of the colour settings compared side by side, this gave the most natural skin (D-054).
+  renderer.toneMapping = NeutralToneMapping
+  renderer.toneMappingExposure = EXPOSURE
   renderer.shadowMap.enabled = true
 
   const canvas = renderer.domElement
@@ -109,17 +119,28 @@ export function mountAvatarViewer(
   const scene = new Scene()
   scene.add(body.object)
 
-  // Sky and floor bounce, a warm key light from the front, and a cool rim light
-  // from behind that picks out the outline of each muscle. The three directed
-  // lights ride on a rig that turns with the camera, so whichever side of the
-  // body is being looked at is the side that is lit.
-  const ambient = new HemisphereLight('#dfe8ff', '#1c2028', 1.15)
+  // Soft light from all round, as in a photo studio, made in code rather than
+  // loaded from a file. Skin and eyes reflect it, which keeps them from looking flat.
+  const pmrem = new PMREMGenerator(renderer)
+  const room = new RoomEnvironment()
+  const roomLight = pmrem.fromScene(room, 0.04).texture
+  room.dispose()
+  pmrem.dispose()
+  scene.environment = roomLight
+  scene.environmentIntensity = ROOM_LIGHT
+
+  // A warm key light from high in front, which lights the top of each muscle
+  // and shades the underside, the way gym lights do; a cool rim light from
+  // behind that picks out the outline; and a weak fill so shadows are not
+  // black. The lights, and the room, turn with the camera, so whichever side of
+  // the body is being looked at is the side that is lit.
+  const ambient = new HemisphereLight('#dfe8ff', '#1c2028', 0.5)
   const lightRig = new Group()
-  const key = new DirectionalLight('#fff1e0', 2.6)
-  key.position.set(2.2, 3.6, 3.2)
+  const key = new DirectionalLight('#fff1e0', 2.8)
+  key.position.set(1.5, 4.4, 2.6)
   key.target.position.set(0, body.height / 2, 0)
   key.castShadow = true
-  key.shadow.mapSize.set(1024, 1024)
+  key.shadow.mapSize.set(2048, 2048)
   key.shadow.camera.left = -1.5
   key.shadow.camera.right = 1.5
   key.shadow.camera.top = 1.6
@@ -127,10 +148,12 @@ export function mountAvatarViewer(
   key.shadow.camera.near = 0.5
   key.shadow.camera.far = 10
   key.shadow.bias = -0.0004
+  key.shadow.normalBias = 0.01
+  key.shadow.radius = SHADOW_SOFTNESS
   const rim = new DirectionalLight('#6fa8ff', 1.9)
   rim.position.set(-2.6, 2.4, -3)
-  const fill = new DirectionalLight('#ffffff', 0.45)
-  fill.position.set(-2, 1.5, 2.5)
+  const fill = new DirectionalLight('#ffffff', 0.3)
+  fill.position.set(-2, 1.2, 2.5)
   lightRig.add(key, key.target, rim, fill)
   scene.add(ambient, lightRig)
 
@@ -279,6 +302,7 @@ export function mountAvatarViewer(
     if (!dirty && !scoresMoved && !viewMoved && !cameraMoved) return
 
     lightRig.rotation.y = Math.atan2(camera.position.x - focus.x, camera.position.z - focus.z)
+    scene.environmentRotation.y = lightRig.rotation.y
     renderer.render(scene, camera)
     dirty = false
   }
@@ -324,6 +348,7 @@ export function mountAvatarViewer(
       floorMaterial.dispose()
       ringGeometry.dispose()
       ringMaterial.dispose()
+      roomLight.dispose()
       key.shadow.dispose()
       renderer.dispose()
       renderer.forceContextLoss()

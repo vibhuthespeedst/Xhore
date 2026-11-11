@@ -14,9 +14,12 @@ function sizeShapeName(regionId: RegionId): string {
 
 const SKIN_MATERIAL = 'skin'
 const EYES_MATERIAL = 'eyes'
-/** Definition shows as skin that goes from soft and matte to tight and glossy. */
-const SOFT_ROUGHNESS = 0.68
-const CUT_ROUGHNESS = 0.4
+/**
+ * Definition shows as skin that goes from soft and matte to tight with a slight
+ * sheen. Much glossier than this and the skin reflects the room like plastic.
+ */
+const SOFT_ROUGHNESS = 0.7
+const CUT_ROUGHNESS = 0.52
 /** Eyes are wet, so they catch a sharp glint of light. */
 const EYE_ROUGHNESS = 0.12
 /** Hair, eyebrows and eyelashes are flat cards. Texels more see-through than this are not drawn. */
@@ -109,7 +112,9 @@ export function createModelBody(root: Object3D): AvatarBody {
   root.traverse((child) => {
     if (!(child instanceof Mesh)) return
     meshes.push(child)
+    // The body also shades itself, under the chest and the arms for example.
     child.castShadow = true
+    child.receiveShadow = true
     // The shapes and the skeleton move points beyond the box three.js measures at rest.
     child.frustumCulled = false
 

@@ -4,9 +4,9 @@ What we are building, the order we are building it in, how the parts connect, an
 
 ## Where we are now
 
-*Last updated: 2026-10-09*
+*Last updated: 2026-11-12*
 
-Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It now has a photographic skin, eyes, eyebrows, eyelashes and hair. The owner has asked for the avatar to be made as realistic as possible before anything else, so that work continues. All 261 automated tests pass. The design for the avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md).
+Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair, and since 2026-11-12 better lighting, so the skin looks less like plastic and the muscle shapes show. The owner has asked for the avatar to be made as realistic as possible before anything else, so that work continues with a breathing stance. All 262 automated tests pass. The design for the avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md).
 
 ## Waiting on the owner
 
@@ -46,7 +46,7 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 12 | Replay a fight between two avatars | Not started | Needs fight animations |
 | 13 | Give the body a detailed skin, eyes and hair | Done 2026-10-09 | From MPFB's free asset pack |
 | 14 | Show definition muscle by muscle, with sharper muscle lines | Not started | Part of the owner's request to make the avatar realistic |
-| 15 | Better lighting, and a breathing stance so the avatar does not stand like a statue | Not started | Part of the same request |
+| 15 | Better lighting, and a breathing stance so the avatar does not stand like a statue | In progress | Part of the same request. Lighting done 2026-11-12. The breathing stance is next. |
 | 16 | Make the exercise list far more detailed, with variations such as hammer curls and dumbbell curls | Not started | The owner's request. It comes after the avatar. Needs Q-13 settled. |
 
 The owner's order of work, set on 2026-10-09: finish the avatar properly first (steps 14 and 15), then the exercise list (step 16), then the remaining steps above.
@@ -110,7 +110,7 @@ All of these are built. Their tests live in [shared/avatar-kit/tests/](shared/av
 | Stand-in body | Builds the body from that list and reshapes it when scores change. It is shown only if the body file cannot be loaded. | [standInBody.ts](shared/avatar-kit/src/standInBody.ts) |
 | Real body | Wraps the loaded body file: sets each region's shape to its score, colours the skin, and lights up a region by making its points glow. | [modelBody.ts](shared/avatar-kit/src/modelBody.ts) |
 | Body file | The body itself: about 13,500 points, a 52-bone skeleton with standard Mixamo names, one shape per region named like `calves_size`, a photographic skin, and separate small meshes for the eyes, eyebrows, eyelashes and hair. Made by the body pipeline, never edited by hand. | [body-male.glb](shared/avatar-kit/assets/body-male.glb) |
-| Viewer | Puts a body on screen: lights, floor ring, a camera you can drag, and smooth easing when scores change. | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
+| Viewer | Puts a body on screen: soft light from all round plus a key, rim and fill light that turn with the camera, soft shadows, a floor ring, a camera you can drag, and smooth easing when scores change. | [viewer.ts](shared/avatar-kit/src/viewer.ts) |
 | Front door | The only file other parts import from. It also holds the one call that loads the body, which hands back the real body, or the stand-in if the file cannot be loaded. | [index.ts](shared/avatar-kit/src/index.ts) |
 
 ### Inside the body pipeline
@@ -212,7 +212,7 @@ Type these in the terminal from the project folder.
 
 | Command | What it does |
 | --- | --- |
-| `npm test` | Runs every test: 173 for the growth engine, then 88 for the avatar kit. Both groups should say "passed". |
+| `npm test` | Runs every test: 173 for the growth engine, then 89 for the avatar kit. Both groups should say "passed". |
 | `npm run build:body` | Rebuilds the 3D body file and its checking pictures with Blender. It takes about a minute and needs Blender in `E:\XhoreTools`. Only needed after changing the build script. |
 | `npm run curve` | Prints a week-by-week table of how one muscle grows for a beginner. |
 | `npm run dev` | Starts the prototype page. It prints an address, normally `http://localhost:5173`. Open that in your browser. Press `Ctrl+C` in the terminal to stop it. |
@@ -222,6 +222,9 @@ Type these in the terminal from the project folder.
 
 Newest first.
 
+- **2026-11-12:**
+  - Step 15, first half: the lighting. The body is now lit by soft light from all round, as in a photo studio, made in code so nothing is downloaded, plus a warm key light set higher, so the top of each muscle is lit and the underside shaded. Shadows are softer, and the body now shades itself, under the chest and the arms for example. Skin at full definition is less glossy than before (D-054).
+  - Checked by taking pictures of the page before and after: the whole body from the front and back, and close-ups of the face and chest. Four colour settings were compared side by side; the chosen one gave the most natural skin. Before, the skin shone like plastic; now it reads as skin, and the chest, shoulders and back show their shape.
 - **2026-10-09:**
   - Step 13 done: the body has a photographic skin, brown eyes, eyebrows, eyelashes and short black hair, all from MPFB's free asset pack (268 MB, public domain, unpacked into `E:\XhoreTools`). The textures added only 0.6 MB to the body file. Skin tones now tint the photographic skin instead of painting a flat colour. Checked on the page in four skin tones.
   - The owner looked at the first body and said it was only okay: dull and robot-like. The owner asked for the avatar to be made very realistic before anything else, and for the exercise list to become far more detailed afterwards (D-050).
@@ -239,8 +242,8 @@ Newest first.
 
 ## Next up
 
-1. Show definition muscle by muscle, with sharper muscle lines (step 14).
-2. Better lighting and a breathing stance (step 15).
+1. A breathing stance, so the avatar does not stand like a statue (the rest of step 15).
+2. Show definition muscle by muscle, with sharper muscle lines (step 14).
 3. The owner looks at the avatar again and says what should still change.
 4. Settle Q-13, then make the exercise list far more detailed (step 16).
 5. Settle Q-6, then add set logging to the page (step 5).
