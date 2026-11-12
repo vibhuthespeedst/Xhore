@@ -8,7 +8,7 @@ What we are building, the order we are building it in, how the parts connect, an
 
 Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair, better lighting, and it breathes. All 270 automated tests pass.
 
-On 2026-11-13 the owner changed two things. There is no weekly points score any more: fights are played Tekken-style, and whoever wins the most fights tops the leaderboard (D-056). And the avatar is good enough for now, so the work moves on to the fight (D-057). The design for the fight is in [Architecture.md](Architecture.md).
+On 2026-11-13 the owner changed two things. There is no weekly points score any more: fights are played Tekken-style, and whoever wins the most fights tops the leaderboard (D-056). And the avatar is good enough for now, so the work moves on to the fight (D-057). The same day, the owner asked for the fight to be realistic. Its physics is now designed from published sports science: body weight and trained muscles decide how hard and how fast a fighter hits, how well they take a hit and how fast they tire (D-058). The leaderboard holds one friend group only (D-059). The physics is described in [design/gdd/fight-physics.md](design/gdd/fight-physics.md) and is being built by the plan in [design/plans/2026-11-13-fight-physics.md](design/plans/2026-11-13-fight-physics.md). The rest of the fight design is in [Architecture.md](Architecture.md).
 
 ## Waiting on the owner
 
@@ -44,7 +44,7 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 8 | Skip ahead a week | Not started | |
 | 9 | Score the weekly match | Dropped 2026-11-13 | There is no weekly points score any more (D-056) |
 | 10 | Add the game contract and the game list | Not started | This is what lets a game be switched off or deleted safely |
-| 11 | Build the fight rules with one fighting style, boxing | Not started | Tested without graphics, like the growth engine. Needs Q-15 settled. |
+| 11 | Build the fight rules with one fighting style, boxing | Started 2026-11-13 | Tested without graphics, like the growth engine. The physics comes first, by its own plan. |
 | 12 | Play a fight: you against a computer-controlled copy of another avatar | Not started | Needs fight animations. Replaces the watched replay (D-056). |
 | 13 | Give the body a detailed skin, eyes and hair | Done 2026-10-09 | From MPFB's free asset pack |
 | 14 | Show definition muscle by muscle, with sharper muscle lines | Waiting | The avatar is good enough for now (D-057) |
@@ -205,6 +205,7 @@ Steps 2 and 3 are built today. Step 1 is simulated for now, and steps 4 and 5 ar
 | Change the page's colours | The list at the top of [styles.css](prototype/src/styles.css) |
 | Change which body file the page loads | The `bodyModelUrl` line at the top of [AvatarView.tsx](prototype/src/features/avatar-view/AvatarView.tsx) |
 | Change how the leaderboard ranks players | Not built yet (step 17) |
+| Read how the fight's physics works, its numbers and where each one comes from | [design/gdd/fight-physics.md](design/gdd/fight-physics.md) |
 | Switch a game off, or remove one | Not built yet (step 10). It will be the game list on the page. |
 | Change a fighting move or a style | Not built yet (step 11). It will live in `games/arena-fight/content/`. |
 | Change the rules of a fight | Not built yet (step 11). It will live in `games/arena-fight/core/`. |
@@ -226,6 +227,7 @@ Type these in the terminal from the project folder.
 
 Newest first.
 
+- **2026-11-13, later:** The owner asked for realistic fights: technique and physics decide, but strength counts too, since an untrained 50 kg person cannot lift 80 kg. Researched how real fights work: punch forces of novice, intermediate, elite and Olympic boxers, strength standards by body weight, how much the legs, trunk and arms add to a punch, how a strong neck protects against knockdowns, how fatigue weakens punches, kick speeds and forces, and what UFC results say about weight and reach. Wrote the fight physics as a design document in the format of a game-studio template (D-060), checked its numbers against the research (they land within about 7%), and wrote a step-by-step plan to build it. The owner decided the leaderboard holds one friend group only (D-059). Two new open questions: whether ranked fights between very different weights are adjusted (Q-16), and whether muscle growth should slow to real-life pace (Q-17).
 - **2026-11-13:** The owner corrected the design. The weekly match score out of 100 (sessions done 50, effort 30, personal bests 20) is gone. Fights are played Tekken-style, and whoever wins the most fights tops the leaderboard (D-056). The watched replay, where points chose the winner, is dropped, so step 9 is dropped and step 12 is now the played fight. A leaderboard is step 17. The owner also asked to stop focusing on the avatar, so the fight comes next (D-057). Two new open questions: how the leaderboard works (Q-14) and how much muscles count in a fight (Q-15).
 - **2026-11-12:**
   - Step 15, first half: the lighting. The body is now lit by soft light from all round, as in a photo studio, made in code so nothing is downloaded, plus a warm key light set higher, so the top of each muscle is lit and the underside shaded. Shadows are softer, and the body now shades itself, under the chest and the arms for example. Skin at full definition is less glossy than before (D-054).
@@ -250,8 +252,9 @@ Newest first.
 
 ## Next up
 
-1. Add the game contract and the game list (step 10).
-2. Settle Q-15, then build the fight rules with boxing, tested without graphics (step 11).
-3. The owner makes a free Adobe account for the fight animations, then the played fight (step 12).
-4. Settle Q-14, then add the leaderboard (step 17).
-5. Settle Q-13, then make the exercise list far more detailed (step 16).
+1. Build the fight physics by its plan (the first part of step 11).
+2. The rest of step 11: rounds, moves in progress, blocking and a computer opponent, with its own plan.
+3. Add the game contract and the game list (step 10).
+4. The owner makes a free Adobe account for the fight animations, then the played fight (step 12).
+5. Settle Q-14 and Q-16, then add the leaderboard (step 17).
+6. Settle Q-13, then make the exercise list far more detailed (step 16).

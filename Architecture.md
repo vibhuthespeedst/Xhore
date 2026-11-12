@@ -14,6 +14,7 @@ How the project is put together, and the plan for the 3D avatar and the first ga
 | A fighting-game look | A realistic 3D human body, not a flat drawing. | D-026, D-029 |
 | More games later, and any game can be removed | Games are plug-ins. Nothing outside a game depends on it. | D-027, D-034 |
 | Fights decide who tops the leaderboard, and the gym makes your fighter stronger | Games report who won. They never change muscle scores, and only the leaderboard counts wins. | D-007, D-056 |
+| Fights are realistic | Strength and body weight follow real physics and real strength data. Technique is the player's own skill. | D-058 |
 
 ## 2. The layers
 
@@ -54,7 +55,7 @@ Unity, Unreal and Godot were considered and set aside for now. Section 9 says wh
 A game is a self-contained folder. It connects to the rest of the project in exactly three places.
 
 1. **The game list.** One file in the shell lists every game, one line each, with an on/off switch. The shell shows a button for each game that is switched on.
-2. **What the shell hands the game when it starts.** A read-only snapshot: who is playing, which of them is at the controls, each player's avatar scores, a seed, and a place on screen to draw.
+2. **What the shell hands the game when it starts.** A read-only snapshot: who is playing, which of them is at the controls, each player's avatar scores, body weight and height, a seed, and a place on screen to draw.
 3. **What the game hands back.** Events only: "started", "finished" with the result, or "failed". The shell and other features can listen for them. The game never calls them directly.
 
 A game may never:
@@ -95,6 +96,7 @@ export interface PlayerSnapshot {
   readonly playerId: string
   readonly displayName: string
   readonly avatar: AvatarState   // from the growth engine
+  readonly body: { readonly weightKg: number; readonly heightCm: number }  // entered by the player
 }
 
 export type GameEvent =
@@ -253,19 +255,22 @@ In Tekken, every fighter's moves come from a real martial art. Here the fighter 
 
 | Style | Leans on | Rewards training | When |
 | --- | --- | --- | --- |
-| Boxing | Punches | Arms, chest, shoulders | First |
+| Boxing | Punches | Legs and trunk first, then arms and shoulders | First |
 | Kickboxing or taekwondo | Kicks | Legs | Second |
 | Karate, kung fu, MMA | A mix | A mix | Later, as free animations allow |
 | Judo, wrestling | Throws | Core and back | Later still. A throw needs two bodies animated together, which is the hardest kind of move to build. |
 
-How muscles make a fighter stronger. How much they count, so that the better player can still win, is still open (Q-15).
+How the body makes a fighter stronger follows real physics and real strength data (D-058). The formulas, the numbers and where each one comes from are in [design/gdd/fight-physics.md](design/gdd/fight-physics.md).
 
-| Muscles | What they power |
+| What | What it does in a fight |
 | --- | --- |
-| Arms, chest, shoulders | Punches |
-| Legs | Kicks and speed |
-| Core and back | Blocks |
+| Body weight | The mass behind every strike, how far a hit pushes you back, and how fast you tire |
+| Legs, then trunk, then arms and shoulders | The power of a punch: about 38%, 37% and 24% of a straight punch |
+| Arms and shoulders | How much a guard can hold |
+| Traps (the neck) | How well the head takes a punch |
+| Core | How well the body takes a body shot |
 | Definition | Stamina |
+| Height | Reach, which matters little in real fights |
 
 ### 6.3 Controls
 
@@ -301,15 +306,16 @@ Each move is a row of numbers:
 | startup | Ticks before the move can hit |
 | active | Ticks during which it can hit |
 | recovery | Ticks afterwards, when the fighter is open |
-| reach | How far it reaches |
+| reach | How far it reaches, as a share of the fighter's height |
 | height | High, middle or low, which decides what blocks it |
-| damage | Health removed by a clean hit |
+| speed and force | How fast and how hard it lands for a 75 kg intermediate. The physics works out the damage for each pair of fighters. |
+| power shares | How much of its power comes from the legs, the trunk and the arms |
+| rotation | How much it twists the head, which raises the chance of a knockdown |
 | stun | Ticks the opponent is frozen after being hit |
 | stamina | Stamina it costs |
-| limb | Punch or kick, which decides which muscles power it |
 | animation | Which animation to play |
 
-A fighter's strength comes from the avatar's scores. They are read at the start of the fight and never changed.
+A fighter's strength comes from the avatar's scores and the player's body weight and height (D-058). They are read at the start of the fight and never changed.
 
 Something has to press the buttons. That is a controller, and the core does not care which kind it is.
 
