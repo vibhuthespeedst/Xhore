@@ -11,7 +11,7 @@ Every decision made on this project, in the order it was made. Look here to find
 
 ## Waiting on a decision
 
-Q-1, Q-2, Q-3, Q-5, Q-7, Q-8 and Q-11 are settled. See D-028 to D-031, D-033, D-043 and D-051.
+Q-1, Q-2, Q-3, Q-5, Q-7, Q-8, Q-9 and Q-11 are settled. See D-028 to D-031, D-033, D-043, D-051 and D-056.
 
 **Q-4: Do players get a face made from a selfie?**
 - Recommendation: treat it as a separate optional feature for later. Fitting a ready-made head onto our muscle body is not straightforward.
@@ -23,18 +23,13 @@ Q-1, Q-2, Q-3, Q-5, Q-7, Q-8 and Q-11 are settled. See D-028 to D-031, D-033, D-
 - Recommendation for the prototype: treat the first weight logged for an exercise as the usual one. This matches D-019, where the first session defines what "usual" means.
 - Needed by: the set logging step of the prototype.
 
-**Q-9: Do played fights count toward the weekly match?**
-- Background: D-016 says the gym week decides who wins the weekly match. A played fight is won by skill with the controls.
-- Recommendation: no. Played fights are a separate, friendly mode with their own win record. The weekly match stays decided by gym points.
-- Needed by: before the played fight is built.
-
 **Q-10: Which fighting style is second, after boxing?**
 - Recommendation: a kicking style, either kickboxing or taekwondo, so that leg training has a style that rewards it. The choice between the two is made once we see which free kick animations look best.
 - Needed by: after the first style works.
 
 **Q-12: When do we add a female body?**
 - Background: the build script makes one male body. The same script can make a female body from different settings, and MPFB has the shapes for it.
-- Recommendation: after the fight replay works, so the whole loop is proven on one body first.
+- Recommendation: after the played fight works, so the whole loop is proven on one body first.
 - Needed by: before anyone outside the project tries the prototype.
 
 **Q-13: How should the detailed exercise list be organised?**
@@ -42,6 +37,16 @@ Q-1, Q-2, Q-3, Q-5, Q-7, Q-8 and Q-11 are settled. See D-028 to D-031, D-033, D-
 - Recommendation: group variations under a base movement, and give each variation its own muscle numbers, because they do differ. A hammer curl, for example, works the forearms more than an ordinary curl does. Add them a body part at a time, with a test for each.
 - What the owner needs to say: roughly how many exercises to aim for, and whether gym machines and cable exercises are included alongside free weights.
 - Needed by: step 16.
+
+**Q-14: How does the leaderboard work?**
+- Background: the player who wins the most fights tops the leaderboard (D-056). Not settled yet: who is on one board, over what period, and how a fight counts. If every fight counts, someone can climb just by playing more fights against computer-controlled copies.
+- Recommendation: one board per group (a couple, friends or a gym group) that starts again every week. Each week you fight every other person in your group a set number of times, say five, and whoever wins most of them wins that pairing. The board ranks people by fights won that week, so nobody climbs by playing more.
+- Needed by: step 17.
+
+**Q-15: How much do muscles count in a fight?**
+- Background: fights are now played and won with the controls (D-056), and the gym makes your fighter stronger. If muscles count too little, training does not matter in a fight. If they count too much, the better player cannot win.
+- Recommendation: a capped edge. A fully trained body hits about a third harder, blocks about a third better and lasts about a third longer than an untrained one, never more. The exact numbers live in the fight's settings and are tuned by playing.
+- Needed by: step 11.
 
 ## Decided
 
@@ -63,8 +68,8 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-012 | By 2026-10-07 | Untrained muscles shrink. After 14 days without training, a region loses 0.5 a week, never below its starting size. Lost size regrows at double speed up to the previous peak. | Reason not recorded in the spec. | Active |
 | D-013 | By 2026-10-07 | Definition follows consistency. The target is the share of the last 4 weeks that had at least 3 hard sets, and each week the score moves 25% of the way there. | Reason not recorded in the spec. | Active |
 | D-014 | By 2026-10-07 | Self-reported sessions earn 50% credit. Friend-confirmed sessions earn 100%. | Reason not recorded in the spec. | Active |
-| D-015 | By 2026-10-07 | The weekly match is scored out of 100: 50 for plan completion, 30 for effort, 20 for personal bests. | Reason not recorded in the spec. | Active |
-| D-016 | By 2026-10-07 | In the fight replay, points decide the winner and avatar stats only shape the fighting style. The replay is built from a seed. | The seed makes the same replay play back the same way every time. | Active |
+| D-015 | By 2026-10-07 | The weekly match is scored out of 100: 50 for plan completion, 30 for effort, 20 for personal bests. | Reason not recorded in the spec. | Replaced by D-056 |
+| D-016 | By 2026-10-07 | In the fight replay, points decide the winner and avatar stats only shape the fighting style. The replay is built from a seed. | The seed makes the same replay play back the same way every time. | Replaced by D-056 |
 | D-017 | By 2026-10-07 | The placeholder avatar is layered SVG drawings with front and back views, using file names like `biceps_size_33.svg`. | So real art can replace the files later without code changes. | Replaced by D-029 |
 | D-018 | By 2026-10-07 | Working style: small steps, a one-line explanation before each command, ask before adding dependencies or installing anything globally, and commit after each working step. | The owner is new to coding. | Active |
 | D-019 | 2026-10-07 | A set with nothing to compare against, such as a new user's first session, counts at normal intensity (1.0). | The first session defines what "usual" means, instead of being scored against nothing. | Active |
@@ -81,7 +86,7 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-030 | 2026-10-09 | The avatar and the games are built with web 3D technology written entirely in code, not in Unity, Unreal or Godot. This settles Q-5 for now, and is looked at again if a team is hired. | The owner cannot use a game-engine editor or hire yet, so everything must be buildable and testable as code. It is also the same language as the growth engine. | Active |
 | D-031 | 2026-10-09 | The first game is a one-on-one arena fighter in the style of Tekken. Football, other sports and an open world stay as ideas for later. This settles Q-7. | The camera is close, so earned muscles are easy to see, and it needs far less building than a team sport or an open world. | Active |
 | D-032 | 2026-10-09 | The fighter's moves come from a real martial art that the player chooses. Every style and every move is open to every player. All styles use the same simple buttons, with no complicated input motions. A style is data rather than code. Boxing is first, and throw-based styles such as judo and wrestling come later. | The owner asked for martial arts styles that are easy to perform and open to everyone. Throws need two bodies animated together, which is the hardest kind of move to build. | Active |
-| D-033 | 2026-10-09 | One set of fight rules serves both a watched fight and a played fight. The watched weekly match replay is built first and keeps D-016. A played fight against a computer-controlled copy of the opponent comes second. Live online fighting is not planned. This settles Q-8. | The replay is the smaller build and is already in the spec. Live online fighting is among the hardest things in games to build. | Active |
+| D-033 | 2026-10-09 | One set of fight rules serves both a watched fight and a played fight. The watched weekly match replay is built first and keeps D-016. A played fight against a computer-controlled copy of the opponent comes second. Live online fighting is not planned. This settles Q-8. | The replay is the smaller build and is already in the spec. Live online fighting is among the hardest things in games to build. | The watched replay is replaced by D-056. The rest is active. |
 | D-034 | 2026-10-09 | Every game is a plug-in: its own folder under `games/`, connected only through a small contract and events, and listed in one game list with an on/off switch. Switching off or deleting a game must not affect anything else. | The owner's requirement, so a game can be taken down safely. It follows D-006 to D-009. | Active |
 | D-035 | 2026-10-09 | An architecture file describes the design we are building toward, and is kept current alongside this log and the project flow file. | So the plan for how the parts fit together is written down in one place. | Active |
 | D-036 | 2026-10-09 | The owner approved adding the 3D library three.js to the project, and downloading Blender with the MPFB add-on. The avatar is built before set logging. | The owner's answer: "Yes start with the Avatar." | Active |
@@ -98,9 +103,11 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-047 | 2026-10-09 | The body's skeleton uses the standard Mixamo bone names, and the file stores a relaxed stance with the arms lowered 24 degrees from MPFB's A-pose. | So free Mixamo fight animations fit later, and the avatar stands naturally before any animation exists. | Active |
 | D-048 | 2026-10-09 | On the real body, definition is shown for the body as a whole, as glossier skin, using the average of all regions. Showing it muscle by muscle waits for the detailed skin (Q-11). | A plain-coloured skin has nowhere to show sharper muscle lines for one region at a time. | Active |
 | D-049 | 2026-10-09 | The pipeline's checking pictures are kept in the project history. The single tiles they are assembled from are not. | The pictures are the record that every region was looked at, and they show the owner what each region does. | Active |
-| D-050 | 2026-10-09 | The owner's order of work: make the avatar very realistic first, one thing at a time. After that, make the exercise list far more detailed, with variations such as hammer curls and dumbbell curls. | The owner looked at the first body and found it "okay only": dull and robot-like. | Active |
+| D-050 | 2026-10-09 | The owner's order of work: make the avatar very realistic first, one thing at a time. After that, make the exercise list far more detailed, with variations such as hammer curls and dumbbell curls. | The owner looked at the first body and found it "okay only": dull and robot-like. | Replaced by D-057 |
 | D-051 | 2026-10-09 | The body gets a photographic skin, eyes, eyebrows, eyelashes and hair from MPFB's free "makehuman_system_assets" pack, which is kept in `E:\XhoreTools`. This settles Q-11. | The owner asked for it. The pack is in the public domain, so it may be used in a commercial game. | Active |
 | D-052 | 2026-10-09 | A skin tone is applied by tinting the photographic skin so that it averages the chosen colour. The body file records the skin picture's average colour for this. One skin picture serves every tone for now. | A photograph already has a colour of its own, and painting a flat colour over it would throw its detail away. The asset pack also has a dark-skinned picture, which darker tones can switch to later. | Active |
 | D-053 | 2026-10-09 | Hair, eyebrows and eyelashes are drawn as solid cut-outs rather than as see-through surfaces. | See-through surfaces are drawn without depth, so hair would show through itself and through the head. | Active |
 | D-054 | 2026-11-12 | The avatar viewer adds soft light from all round, made in code (three.js's built-in studio "room"), to a warm key light set high in front, a cool rim light and a weak fill. Shadows are soft and the body shades itself. Colours use three.js's "Neutral" tone setting at 80% brightness. Skin at full definition is less glossy than before. | The owner found the avatar dull and robot-like (D-050). In side-by-side pictures, this made the skin look least like plastic and showed the muscle shapes best. The other colour settings tried turned the skin grey, pale or orange. | Active |
 | D-055 | 2026-11-12 | The avatar breathes while it stands: every 4.5 seconds the chest lifts and the shoulders rise a few millimetres, and the upper body sways slightly every 7.3 seconds. It is worked out in code and turns the chest, neck, shoulder and arm bones; the hips, legs and feet never move, and the head stays level. The viewer can switch it off, and does so for anyone whose device asks for reduced motion. The stand-in body, which has no skeleton, stands still. | The owner did not want the avatar standing like a statue (D-050). Made in code, it needs no animation file and no Adobe account, and it works before any Mixamo animation arrives. Leaving the legs alone means the feet cannot slide on the floor. | Active |
+| D-056 | 2026-11-13 | There is no weekly match score. Fights are played, Tekken-style, and the player who wins the most fights tops the leaderboard. The watched replay is dropped. Your opponent is still a computer-controlled copy of the other player's avatar (D-033). Muscles make a fighter stronger: arms, chest and shoulders power punches, legs power kicks and speed, core and back power blocks, and definition powers stamina. How much they count is Q-15, and how the leaderboard works is Q-14. A fight is still built from a seed. This replaces D-015 and D-016, and the watched replay in D-033, and settles Q-9. | The owner said the 0 to 100 match score was not right and should go, and that the fight "actually happens in tekken form", with the player who wins most fights topping the leaderboard. The seed means the same inputs always give the same fight, so the rules can be tested without graphics. | Active |
+| D-057 | 2026-11-13 | The avatar is good enough for now. Its remaining work, such as definition muscle by muscle (step 14), waits. The fight comes next: the game contract, the fight rules, the played fight and the leaderboard. The more detailed exercise list from D-050 still comes, after the fight. This replaces D-050. | The owner asked not to focus on the avatar so much, and to work on the rest of the game instead. | Active |

@@ -4,9 +4,11 @@ What we are building, the order we are building it in, how the parts connect, an
 
 ## Where we are now
 
-*Last updated: 2026-11-12*
+*Last updated: 2026-11-13*
 
-Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair. Since 2026-11-12 it has better lighting, so the skin looks less like plastic and the muscle shapes show, and it breathes, so it no longer stands like a statue. The owner has asked for the avatar to be made as realistic as possible before anything else, so that work continues with muscle definition. All 270 automated tests pass. The design for the avatar and for the first game, a one-on-one arena fighter, is written down in [Architecture.md](Architecture.md).
+Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair, better lighting, and it breathes. All 270 automated tests pass.
+
+On 2026-11-13 the owner changed two things. There is no weekly points score any more: fights are played Tekken-style, and whoever wins the most fights tops the leaderboard (D-056). And the avatar is good enough for now, so the work moves on to the fight (D-057). The design for the fight is in [Architecture.md](Architecture.md).
 
 ## Waiting on the owner
 
@@ -20,7 +22,7 @@ The owner gave the OK for three.js and for Blender with MPFB on 2026-10-09 (D-03
 
 | Phase | What it delivers | Status |
 | --- | --- | --- |
-| Phase 0: web prototype | One web page where you log sets, watch the avatar grow, skip ahead a week and replay a fight. No backend, no accounts. | In progress since 2026-10-07 |
+| Phase 0: web prototype | One web page where you log sets, watch the avatar grow, skip ahead a week, fight other avatars and see who tops the leaderboard. No backend, no accounts. | In progress since 2026-10-07 |
 | Later: mobile app | The real app for Android and iOS, built with Expo. | Not started |
 | Later: server | The online side, built with Firebase. | Not started |
 
@@ -40,18 +42,19 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 6 | Show a 3D avatar that grows, using a stand-in body built in code | Done 2026-10-09 | Driven by a quick simulator until set logging exists |
 | 7 | Build the real 3D body and swap it in | Done 2026-10-09 | First version. `npm run build:body` rebuilds it. Skin, eyes and hair are step 13. |
 | 8 | Skip ahead a week | Not started | |
-| 9 | Score the weekly match | Not started | The rules are in the spec but are not built yet |
+| 9 | Score the weekly match | Dropped 2026-11-13 | There is no weekly points score any more (D-056) |
 | 10 | Add the game contract and the game list | Not started | This is what lets a game be switched off or deleted safely |
-| 11 | Build the fight rules with one fighting style, boxing | Not started | Tested without graphics, like the growth engine |
-| 12 | Replay a fight between two avatars | Not started | Needs fight animations |
+| 11 | Build the fight rules with one fighting style, boxing | Not started | Tested without graphics, like the growth engine. Needs Q-15 settled. |
+| 12 | Play a fight: you against a computer-controlled copy of another avatar | Not started | Needs fight animations. Replaces the watched replay (D-056). |
 | 13 | Give the body a detailed skin, eyes and hair | Done 2026-10-09 | From MPFB's free asset pack |
-| 14 | Show definition muscle by muscle, with sharper muscle lines | Not started | Part of the owner's request to make the avatar realistic |
+| 14 | Show definition muscle by muscle, with sharper muscle lines | Waiting | The avatar is good enough for now (D-057) |
 | 15 | Better lighting, and a breathing stance so the avatar does not stand like a statue | Done 2026-11-12 | Part of the same request. The breathing is made in code, and it stops for people whose device asks for reduced motion. |
-| 16 | Make the exercise list far more detailed, with variations such as hammer curls and dumbbell curls | Not started | The owner's request. It comes after the avatar. Needs Q-13 settled. |
+| 16 | Make the exercise list far more detailed, with variations such as hammer curls and dumbbell curls | Not started | The owner's request. It comes after the fight. Needs Q-13 settled. |
+| 17 | A leaderboard: whoever has won the most fights is on top | Not started | Counts the results the fight reports. Needs Q-14 settled. |
 
-The owner's order of work, set on 2026-10-09: finish the avatar properly first (steps 14 and 15), then the exercise list (step 16), then the remaining steps above.
+The owner's order of work, set on 2026-11-13 (D-057): the fight first (steps 10, 11, 12 and 17), then the exercise list (step 16), then the remaining steps above. The avatar work that is left (step 14) waits.
 
-After Phase 0: a second fighting style (Q-10), then a fight you play against a computer-controlled copy of your opponent (Q-9), then the phone app.
+After Phase 0: a second fighting style (Q-10), then the phone app.
 
 ## The parts and how they connect
 
@@ -132,10 +135,9 @@ These pieces of data are the only way the parts talk to each other.
 | Session | One gym visit: when it happened, whether it was self-reported or friend-confirmed, and its sets (exercise, reps, weight). | The quick simulator today, set logging later | Growth engine | Yes, simulated ones |
 | Baselines | Your usual weight or reps for each exercise, used to judge effort. | Not decided yet (Q-6) | Growth engine | Shape defined, nothing makes it yet |
 | Avatar state | For each of the 19 regions: size, definition, starting size, best size reached and when it was last trained. It also keeps the last 4 weeks of hard-set counts, which definition needs. | Growth engine only | Avatar view, muscle list, games | Yes |
-| Week report | What one week did: sets counted and skipped, average intensity, and each region's size and definition before and after. | Growth engine only | Weekly match, the page | Yes |
-| Match points | A player's score for the week, 0 to 100. | Weekly match | The page, games | Not yet |
-| Player snapshot | A read-only copy of each player's avatar state and match points, handed to a game when it starts. | The game list | A game | Not yet |
-| Game events | "Started", "finished" with the result, or "failed". | A game | The page | Not yet |
+| Week report | What one week did: sets counted and skipped, average intensity, and each region's size and definition before and after. | Growth engine only | The page | Yes |
+| Player snapshot | A read-only copy of each player's avatar state, handed to a game when it starts. | The game list | A game | Not yet |
+| Game events | "Started", "finished" with who won, or "failed". | A game | The page, the leaderboard | Not yet |
 
 ### Features on the page
 
@@ -148,8 +150,8 @@ Each feature has its own folder inside [prototype/src/features/](prototype/src/f
 | Quick simulator | A temporary stand-in for set logging. You pick a starting level and a weekly routine, then skip 1, 4 or 12 weeks. It invents the sessions and the growth engine does the maths. | What you click | Sessions for the engine, then the new avatar state | Built ([quick-sim/](prototype/src/features/quick-sim/)). To be replaced by steps 5 and 8. |
 | Set logging | You pick an exercise, enter reps and weight, and mark the session as self-reported or friend-confirmed. | What you type | Sessions | Step 5 |
 | Skip a week | Moves time forward one week and asks the engine to process it. | Sessions, avatar state | New avatar state, week report | Step 8 |
-| Weekly match | Scores a player's week out of 100 for plan completion, effort and personal bests. | Week report, sessions planned and done | Match points | Step 9 |
-| Game list | Shows a button for each game that is switched on, and starts the one you pick. | Avatar state, match points | A player snapshot for the game | Step 10 |
+| Game list | Shows a button for each game that is switched on, and starts the one you pick. | Avatar state | A player snapshot for the game | Step 10 |
+| Leaderboard | Counts each player's fight wins and ranks them, whoever has won the most on top. A game only reports who won; the leaderboard does the counting. | "Finished" game events | The ranking | Step 17 |
 
 ### Games
 
@@ -157,8 +159,7 @@ Every game is a separate plug-in that only reads the avatar state. Adding a game
 
 | Game | What it is | Folder | Status |
 | --- | --- | --- | --- |
-| Arena fight, watched | The weekly match replay. You watch your avatar fight your opponent's, and the week's points decide the winner. | `games/arena-fight/` | Planned for Phase 0 (steps 11 and 12) |
-| Arena fight, played | You control your avatar against a computer-controlled copy of your opponent's. | `games/arena-fight/` | Planned after Phase 0 |
+| Arena fight | A Tekken-style fight. You control your avatar against a computer-controlled copy of your opponent's. Your muscles make your fighter stronger, and every win counts on the leaderboard. | `games/arena-fight/` | Planned for Phase 0 (steps 11 and 12) |
 | Football and other sports | Team matches that reuse the same avatars. | A new folder under `games/` | Idea for later |
 | Open world | A shared world to walk around in. | A new folder under `games/` | Idea for later |
 
@@ -167,8 +168,8 @@ Every game is a separate plug-in that only reads the avatar state. Adding a game
 1. **You log your sets.** Each set is an exercise, a number of reps and a weight.
 2. **The growth engine does the maths.** Once a week it turns the logged sets into a size and a definition score for each of the 19 muscle regions.
 3. **The avatar is drawn from those scores.** Each region is shown at its current size, so a muscle you train gets visibly bigger.
-4. **The weekly match is scored.** Each player gets 0 to 100 points for plan completion, effort and personal bests.
-5. **The fight replay plays.** Points decide who wins. The avatars' muscles only shape how the fight looks.
+4. **You fight.** You play a Tekken-style fight against a computer-controlled copy of another player's avatar. Bigger muscles make your fighter stronger, but you still have to win it with the controls.
+5. **The leaderboard updates.** Whoever has won the most fights is on top.
 
 Steps 2 and 3 are built today. Step 1 is simulated for now, and steps 4 and 5 are still to build.
 
@@ -203,7 +204,7 @@ Steps 2 and 3 are built today. Step 1 is simulated for now, and steps 4 and 5 ar
 | Change a muscle's display name | `REGION_LABELS` in [regions.ts](engine/src/regions.ts) |
 | Change the page's colours | The list at the top of [styles.css](prototype/src/styles.css) |
 | Change which body file the page loads | The `bodyModelUrl` line at the top of [AvatarView.tsx](prototype/src/features/avatar-view/AvatarView.tsx) |
-| Change match scoring | Not built yet (step 9) |
+| Change how the leaderboard ranks players | Not built yet (step 17) |
 | Switch a game off, or remove one | Not built yet (step 10). It will be the game list on the page. |
 | Change a fighting move or a style | Not built yet (step 11). It will live in `games/arena-fight/content/`. |
 | Change the rules of a fight | Not built yet (step 11). It will live in `games/arena-fight/core/`. |
@@ -225,6 +226,7 @@ Type these in the terminal from the project folder.
 
 Newest first.
 
+- **2026-11-13:** The owner corrected the design. The weekly match score out of 100 (sessions done 50, effort 30, personal bests 20) is gone. Fights are played Tekken-style, and whoever wins the most fights tops the leaderboard (D-056). The watched replay, where points chose the winner, is dropped, so step 9 is dropped and step 12 is now the played fight. A leaderboard is step 17. The owner also asked to stop focusing on the avatar, so the fight comes next (D-057). Two new open questions: how the leaderboard works (Q-14) and how much muscles count in a fight (Q-15).
 - **2026-11-12:**
   - Step 15, first half: the lighting. The body is now lit by soft light from all round, as in a photo studio, made in code so nothing is downloaded, plus a warm key light set higher, so the top of each muscle is lit and the underside shaded. Shadows are softer, and the body now shades itself, under the chest and the arms for example. Skin at full definition is less glossy than before (D-054).
   - Checked by taking pictures of the page before and after: the whole body from the front and back, and close-ups of the face and chest. Four colour settings were compared side by side; the chosen one gave the most natural skin. Before, the skin shone like plastic; now it reads as skin, and the chest, shoulders and back show their shape.
@@ -248,7 +250,8 @@ Newest first.
 
 ## Next up
 
-1. The owner looks at the avatar again and says what should still change.
-2. Show definition muscle by muscle, with sharper muscle lines (step 14).
-3. Settle Q-13, then make the exercise list far more detailed (step 16).
-4. Settle Q-6, then add set logging to the page (step 5).
+1. Add the game contract and the game list (step 10).
+2. Settle Q-15, then build the fight rules with boxing, tested without graphics (step 11).
+3. The owner makes a free Adobe account for the fight animations, then the played fight (step 12).
+4. Settle Q-14, then add the leaderboard (step 17).
+5. Settle Q-13, then make the exercise list far more detailed (step 16).

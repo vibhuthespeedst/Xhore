@@ -79,10 +79,7 @@ export interface RegionWeekReport {
   readonly definitionTarget: number
 }
 
-/**
- * What one processed week did. The prototype draws from this, and weekly match
- * scoring will read it later without the growth code needing to change.
- */
+/** What one processed week did. The prototype draws from this. */
 export interface WeekReport {
   readonly weekStart: string
   readonly weekEnd: string

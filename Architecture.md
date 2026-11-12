@@ -2,7 +2,7 @@
 
 How the project is put together, and the plan for the 3D avatar and the first game. [Decision.md](Decision.md) records why each choice was made. [ProjectFlow.md](ProjectFlow.md) records what is built so far. This file describes the design we are building toward.
 
-*Last updated: 2026-10-09. Built so far: the growth engine, the prototype page, the avatar kit, and the pipeline that builds the real 3D body. Everything else here is the plan.*
+*Last updated: 2026-11-13. Built so far: the growth engine, the prototype page, the avatar kit, and the pipeline that builds the real 3D body. Everything else here is the plan.*
 
 ## 1. What shaped this design
 
@@ -13,7 +13,7 @@ How the project is put together, and the plan for the 3D avatar and the first ga
 | Muscles grow one by one | The body needs a separate growable shape for each of the 19 regions. | D-022, D-028 |
 | A fighting-game look | A realistic 3D human body, not a flat drawing. | D-026, D-029 |
 | More games later, and any game can be removed | Games are plug-ins. Nothing outside a game depends on it. | D-027, D-034 |
-| The gym decides who wins the week | Games show results. They never change muscle scores or match points. | D-007, D-016 |
+| Fights decide who tops the leaderboard, and the gym makes your fighter stronger | Games report who won. They never change muscle scores, and only the leaderboard counts wins. | D-007, D-056 |
 
 ## 2. The layers
 
@@ -21,10 +21,10 @@ Each layer is built on the ones below it in this table, never the other way roun
 
 | Layer | Folder | Its job | Status |
 | --- | --- | --- | --- |
-| Shell | [prototype/](prototype/) now, `app/` later | The screens: logging sets, the avatar screen, the weekly match, and the list of games. | Started: the avatar screen exists |
+| Shell | [prototype/](prototype/) now, `app/` later | The screens: logging sets, the avatar screen, the leaderboard, and the list of games. | Started: the avatar screen exists |
 | Games | `games/arena-fight/`, more later | One folder per game. Each is a plug-in that can be removed. | Planned |
 | Shared kits | [shared/avatar-kit/](shared/avatar-kit/), `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | The avatar kit is built and shows the real body. The game contract is planned. |
-| Rules | [engine/](engine/) | The growth maths. Weekly match scoring joins it later in its own folder. It has no screen. | Growth is built |
+| Rules | [engine/](engine/) | The growth maths. The leaderboard's ranking rules join it later in their own folder. It has no screen. | Growth is built |
 | Server | `functions/` | The online side. It reuses the rules. | Later |
 
 ### Who may use whom
@@ -54,17 +54,21 @@ Unity, Unreal and Godot were considered and set aside for now. Section 9 says wh
 A game is a self-contained folder. It connects to the rest of the project in exactly three places.
 
 1. **The game list.** One file in the shell lists every game, one line each, with an on/off switch. The shell shows a button for each game that is switched on.
-2. **What the shell hands the game when it starts.** A read-only snapshot: who is playing, each player's avatar scores, the weekly match result if there is one, a seed, and a place on screen to draw.
+2. **What the shell hands the game when it starts.** A read-only snapshot: who is playing, which of them is at the controls, each player's avatar scores, a seed, and a place on screen to draw.
 3. **What the game hands back.** Events only: "started", "finished" with the result, or "failed". The shell and other features can listen for them. The game never calls them directly.
 
 A game may never:
 
 - change an avatar's size or definition, because only the growth engine does that,
-- change weekly match points, because only the weekly match does that,
+- count a win itself, because only the leaderboard does that from the "finished" event,
 - use another game's code or saved data,
 - be used by anything except through the game list.
 
 Each game keeps its own saved data, such as a player's chosen fighting style, in its own drawer under its own name, with a version number.
+
+### The leaderboard
+
+The leaderboard belongs to the shell, not to any game. It listens for "finished" events and counts each player's wins, and whoever has won the most fights is on top (D-056). There is no points score. The rules for ranking live in the engine, so the server can use the same ones later. Who is on one board, over what period, and how many fights count are still open (Q-14).
 
 ### The contract, sketched
 
@@ -83,7 +87,7 @@ export interface GameHost {
   readonly container: HTMLElement              // where the game draws
   readonly players: readonly PlayerSnapshot[]  // read-only copies
   readonly seed: string                        // same seed, same game
-  readonly decided?: { readonly winnerId: string | null }  // set for a weekly match replay
+  readonly humanPlayerId: string               // at the controls; the others are computer-controlled
   emit(event: GameEvent): void                 // the only way a game talks back
 }
 
@@ -91,7 +95,6 @@ export interface PlayerSnapshot {
   readonly playerId: string
   readonly displayName: string
   readonly avatar: AvatarState   // from the growth engine
-  readonly matchPoints?: number  // from the weekly match
 }
 
 export type GameEvent =
@@ -119,7 +122,7 @@ export const GAMES = [
 | A game is broken | Nothing, at first. | A game that fails to load or crashes shows "not available", and the rest of the app keeps working. Then switch it off. |
 | Remove a game for good | Delete its folder and its one line in the game list. | Nothing else refers to it, so nothing else changes. Its saved data is simply no longer read. |
 
-With no games at all, the core still works: logging sets, muscle growth, the avatar screen and the weekly match, whose winner is decided by points. Only the fight animation is missing, and the result is shown as scores.
+With no games at all, the core still works: logging sets, muscle growth and the avatar screen. No new fights happen, so the leaderboard stops changing but still shows the wins already counted.
 
 Two automated tests keep this true. One checks the "who may use whom" rules. The other runs the shell with an empty game list.
 
@@ -231,11 +234,12 @@ The idle breathing needs no animation file. The avatar kit works it out from the
 
 | Stage | What it is | Who controls the fighters | Order |
 | --- | --- | --- | --- |
-| A | Weekly match replay. You watch your avatar fight your opponent's. The winner is whoever earned more points that week. | The computer, following a script that knows the result | First |
-| B | Played fight. You control your avatar against a computer-controlled copy of your opponent's avatar. | You and the computer | Second |
-| C | Live online fight between two people | Two people at once | Not planned |
+| A | Played fight. You control your avatar against a computer-controlled copy of your opponent's avatar. Every win counts on the leaderboard. | You and the computer | First |
+| B | Live online fight between two people | Two people at once | Not planned |
 
-Stage C is left out because live online fighting needs special networking that is among the hardest things in games to build. Stage B gives the feeling of fighting a friend without it, and the two players do not have to be online at the same time.
+Stage B is left out because live online fighting needs special networking that is among the hardest things in games to build. Stage A gives the feeling of fighting a friend without it, and the two players do not have to be online at the same time.
+
+The earlier plan started with a watched replay, where the week's gym points chose the winner. It was dropped with the weekly points score (D-056): a fight is now won by playing it.
 
 ### 6.2 Fighting styles
 
@@ -254,7 +258,7 @@ In Tekken, every fighter's moves come from a real martial art. Here the fighter 
 | Karate, kung fu, MMA | A mix | A mix | Later, as free animations allow |
 | Judo, wrestling | Throws | Core and back | Later still. A throw needs two bodies animated together, which is the hardest kind of move to build. |
 
-How muscles shape a fighter, as the spec sets out:
+How muscles make a fighter stronger. How much they count, so that the better player can still win, is still open (Q-15).
 
 | Muscles | What they power |
 | --- | --- |
@@ -286,7 +290,7 @@ The fight core advances the fight in fixed steps called ticks, 60 per second. On
 3. checks whether a move that is in its hitting window reaches the opponent, and whether the opponent is blocking it,
 4. applies damage and stun, and checks whether the round is over.
 
-The same seed and the same inputs always produce exactly the same fight. That gives repeatable replays, which the spec requires. It also lets every rule be tested without graphics, and would let a server re-check a result later.
+The same seed and the same inputs always produce exactly the same fight. That lets every rule be tested without graphics, lets a fight be played back from its inputs, and would let a server re-check a result later.
 
 The two fighters stand on a line facing each other, as in Tekken's side view. A hit is decided by distance and height, not by testing the two 3D bodies against each other. That keeps the rules simple and exact. Side-stepping can be added later.
 
@@ -311,11 +315,8 @@ Something has to press the buttons. That is a controller, and the core does not 
 
 | Controller | Who decides the inputs | Used for |
 | --- | --- | --- |
-| Director | A script that knows who must win | Weekly match replay |
-| Computer | Plays to win, at a set skill level | The opponent in a played fight |
-| Human | Touch buttons | The player in a played fight |
-
-For a weekly match, the shell tells the game who won. The director then stages a fight that ends that way. The seed chooses the moves, and the points gap decides how close the fight looks.
+| Computer | Plays to win, at a set skill level | The opponent |
+| Human | Keys on a computer, touch buttons on a phone | The player |
 
 The fight view only reads the core's state and draws it. It never changes the outcome.
 
@@ -323,7 +324,7 @@ The fight view only reads the core's state and draws it. It never changes the ou
 
 | Piece | How hard | Why |
 | --- | --- | --- |
-| Watched replay with two styles | Moderate | It is mostly rules and data, and the animations are ready-made. |
+| Fight rules with two styles | Moderate | It is mostly rules and data, and the animations are ready-made. |
 | Played fight against the computer | Hard, but doable in stages | It needs responsive controls, a fair computer opponent and a lot of tuning. |
 | Throws and grapples | Hard | Two bodies must be animated together. |
 | Live online one-on-one | Very hard | It needs special networking and game servers. |
@@ -337,12 +338,12 @@ Each step leaves something that works by itself.
 2. Set logging.
 3. The avatar screen with the stand-in body, driven by the growth engine. Done.
 4. The real body from the Blender script, swapped in. Done, as a first version.
-5. Skip a week, and weekly match scoring.
+5. Skip a week.
 6. The game contract, the game list, and the two tests from section 4.
 7. The fight core with boxing, tested without graphics.
-8. The fight view in watched mode. This completes the fight replay.
-9. A second style.
-10. The played fight against the computer.
+8. The fight view: you play against a computer-controlled copy of another avatar.
+9. The leaderboard.
+10. A second style.
 
 Step numbers in [ProjectFlow.md](ProjectFlow.md) track progress against this order.
 
