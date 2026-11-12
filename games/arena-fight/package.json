@@ -12,7 +12,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "matchup": "vitest run tests/matchup.test.ts --disable-console-intercept"
   },
   "dependencies": {
     "@xhore/engine": "*"

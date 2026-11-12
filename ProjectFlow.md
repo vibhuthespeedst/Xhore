@@ -6,9 +6,9 @@ What we are building, the order we are building it in, how the parts connect, an
 
 *Last updated: 2026-11-13*
 
-Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair, better lighting, and it breathes. All 270 automated tests pass.
+Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair, better lighting, and it breathes. All 324 automated tests pass.
 
-On 2026-11-13 the owner changed two things. There is no weekly points score any more: fights are played Tekken-style, and whoever wins the most fights tops the leaderboard (D-056). And the avatar is good enough for now, so the work moves on to the fight (D-057). The same day, the owner asked for the fight to be realistic. Its physics is now designed from published sports science: body weight and trained muscles decide how hard and how fast a fighter hits, how well they take a hit and how fast they tire (D-058). The leaderboard holds one friend group only (D-059). The physics is described in [design/gdd/fight-physics.md](design/gdd/fight-physics.md) and is being built by the plan in [design/plans/2026-11-13-fight-physics.md](design/plans/2026-11-13-fight-physics.md). The rest of the fight design is in [Architecture.md](Architecture.md).
+On 2026-11-13 the owner changed two things. There is no weekly points score any more: fights are played Tekken-style, and whoever wins the most fights tops the leaderboard (D-056). And the avatar is good enough for now, so the work moves on to the fight (D-057). The same day, the owner asked for the fight to be realistic. Its physics is now designed from published sports science: body weight and trained muscles decide how hard and how fast a fighter hits, how well they take a hit and how fast they tire (D-058). The leaderboard holds one friend group only (D-059). The physics is now built and tested; `npm run matchup` prints how two bodies compare in a fight. It is described in [design/gdd/fight-physics.md](design/gdd/fight-physics.md) and was built by the plan in [design/plans/2026-11-13-fight-physics.md](design/plans/2026-11-13-fight-physics.md). The rest of the fight design is in [Architecture.md](Architecture.md).
 
 ## Waiting on the owner
 
@@ -44,7 +44,7 @@ Phase 0 is done when the tests pass, `npm run dev` shows the page, and a non-cod
 | 8 | Skip ahead a week | Not started | |
 | 9 | Score the weekly match | Dropped 2026-11-13 | There is no weekly points score any more (D-056) |
 | 10 | Add the game contract and the game list | Not started | This is what lets a game be switched off or deleted safely |
-| 11 | Build the fight rules with one fighting style, boxing | Started 2026-11-13 | Tested without graphics, like the growth engine. The physics comes first, by its own plan. |
+| 11 | Build the fight rules with one fighting style, boxing | Started 2026-11-13 | Tested without graphics, like the growth engine. The physics is done: how hard, how fast and how far each punch lands, from body weight and muscles. Still to come: rounds, moves in progress, blocking and a computer opponent. |
 | 12 | Play a fight: you against a computer-controlled copy of another avatar | Not started | Needs fight animations. Replaces the watched replay (D-056). |
 | 13 | Give the body a detailed skin, eyes and hair | Done 2026-10-09 | From MPFB's free asset pack |
 | 14 | Show definition muscle by muscle, with sharper muscle lines | Waiting | The avatar is good enough for now (D-057) |
@@ -68,7 +68,7 @@ This is the map of the project. Each part does one job and is kept apart from th
 | Avatar kit | [shared/avatar-kit/](shared/avatar-kit/) | Shows a 3D body with every muscle at its score. Every screen and game uses it. It never works a score out. | Built, with the real body and the stand-in as a fallback |
 | Body pipeline | [tools/avatar-pipeline/](tools/avatar-pipeline/) | Builds the body file with Blender and MPFB, and saves pictures of every muscle region for checking. It runs on the owner's computer, not in the app. | Built |
 | Game contract | `shared/game-api/` | The small contract every game follows. | Planned |
-| Games | `games/arena-fight/` | One folder per game. Each is a plug-in that can be removed. The first is the arena fighter. | Planned |
+| Games | [games/arena-fight/](games/arena-fight/) | One folder per game. Each is a plug-in that can be removed. The first is the arena fighter. | Started: the arena fight's physics is built |
 | Prototype page | [prototype/](prototype/) | The web page for trying everything. It shows things and collects what you type. | Started. It has the avatar screen, a quick simulator and a muscle list. |
 | Mobile app | `app/` | The real Android and iOS app. | Later |
 | Server | `functions/` | The online side, built with Firebase. | Later |
@@ -126,6 +126,20 @@ All of these are built. Their tests live in [shared/avatar-kit/tests/](shared/av
 | Checking pictures | Every region grown to 100 with its area in red, from the front, back and side (`regions-…`), plus the finished character's face and body, slim and fully grown (`look-…`). Rewritten on every build. | [previews/](tools/avatar-pipeline/previews/) |
 | Asset pack | MPFB's free pack of skins, eyes, eyebrows, eyelashes and hair, unpacked inside the Blender folder in `E:\XhoreTools`. The build script picks from it. | Not in the project |
 
+### Inside the arena fight
+
+The physics is built; the rounds, the computer opponent and the 3D view are still to come. The tests live in [games/arena-fight/tests/](games/arena-fight/tests/).
+
+| Part | What it does | File |
+| --- | --- | --- |
+| Settings | Every number of the fight's physics, in one place. Where each one comes from is in [fight-physics.md](design/gdd/fight-physics.md). | [settings.ts](games/arena-fight/core/settings.ts) |
+| Strength standards | Real one-rep-max standards for bench press, squat and deadlift, by body weight and training level, from Strength Level. | [strengthStandards.ts](games/arena-fight/core/strengthStandards.ts) |
+| Strength | Reads a muscle score as a training level, and a level with a body weight as an estimated one-rep max. | [strength.ts](games/arena-fight/core/strength.ts) |
+| Fighter | Turns a body (weight, height and avatar) into a fighter: muscle groups, strength, the legs, trunk and arms behind a punch, stamina, walking speed and estimated lifts. | [fighter.ts](games/arena-fight/core/fighter.ts) |
+| Strike | Works out what a strike does, landed or blocked: speed, the mass behind it, force, damage, knockdown chance, guard, pushback and stamina, plus reach and timing. It never rolls dice; it hands back chances. | [strike.ts](games/arena-fight/core/strike.ts) |
+| Boxing moves | The six boxing moves as data: speed, force, power shares, twist, reach, stamina and timing. | [boxing.ts](games/arena-fight/content/boxing.ts) |
+| Front door | The only file other parts import from. | [index.ts](games/arena-fight/core/index.ts) |
+
 ### What gets handed from part to part
 
 These pieces of data are the only way the parts talk to each other.
@@ -136,7 +150,8 @@ These pieces of data are the only way the parts talk to each other.
 | Baselines | Your usual weight or reps for each exercise, used to judge effort. | Not decided yet (Q-6) | Growth engine | Shape defined, nothing makes it yet |
 | Avatar state | For each of the 19 regions: size, definition, starting size, best size reached and when it was last trained. It also keeps the last 4 weeks of hard-set counts, which definition needs. | Growth engine only | Avatar view, muscle list, games | Yes |
 | Week report | What one week did: sets counted and skipped, average intensity, and each region's size and definition before and after. | Growth engine only | The page | Yes |
-| Player snapshot | A read-only copy of each player's avatar state, handed to a game when it starts. | The game list | A game | Not yet |
+| Body details | A player's body weight and height. | The player, on the page (not built yet) | The fight | Not yet; the tests use made-up bodies |
+| Player snapshot | A read-only copy of each player's avatar state, body weight and height, handed to a game when it starts. | The game list | A game | Not yet |
 | Game events | "Started", "finished" with who won, or "failed". | A game | The page, the leaderboard | Not yet |
 
 ### Features on the page
@@ -159,7 +174,7 @@ Every game is a separate plug-in that only reads the avatar state. Adding a game
 
 | Game | What it is | Folder | Status |
 | --- | --- | --- | --- |
-| Arena fight | A Tekken-style fight. You control your avatar against a computer-controlled copy of your opponent's. Your muscles make your fighter stronger, and every win counts on the leaderboard. | `games/arena-fight/` | Planned for Phase 0 (steps 11 and 12) |
+| Arena fight | A Tekken-style fight. You control your avatar against a computer-controlled copy of your opponent's. Your muscles make your fighter stronger, and every win counts on the leaderboard. | [games/arena-fight/](games/arena-fight/) | Started: the physics is built (step 11). The rest is planned for Phase 0 (steps 11 and 12). |
 | Football and other sports | Team matches that reuse the same avatars. | A new folder under `games/` | Idea for later |
 | Open world | A shared world to walk around in. | A new folder under `games/` | Idea for later |
 
@@ -207,8 +222,11 @@ Steps 2 and 3 are built today. Step 1 is simulated for now, and steps 4 and 5 ar
 | Change how the leaderboard ranks players | Not built yet (step 17) |
 | Read how the fight's physics works, its numbers and where each one comes from | [design/gdd/fight-physics.md](design/gdd/fight-physics.md) |
 | Switch a game off, or remove one | Not built yet (step 10). It will be the game list on the page. |
-| Change a fighting move or a style | Not built yet (step 11). It will live in `games/arena-fight/content/`. |
-| Change the rules of a fight | Not built yet (step 11). It will live in `games/arena-fight/core/`. |
+| Change a boxing move's speed, power, reach or timing | [boxing.ts](games/arena-fight/content/boxing.ts) |
+| Change how hard strikes land, knockdowns, guards, pushback or stamina | The numbers in [settings.ts](games/arena-fight/core/settings.ts). The formulas are explained in [fight-physics.md](design/gdd/fight-physics.md). |
+| Change which muscles count toward a muscle group in the fight | `groups` at the top of [settings.ts](games/arena-fight/core/settings.ts) |
+| See how two bodies compare in a fight | `npm run matchup` |
+| Change the rounds, the moves in progress or the computer opponent | Not built yet (the rest of step 11). It will live in `games/arena-fight/core/`. |
 | Change how a fight looks | Not built yet (step 12). It will live in `games/arena-fight/view/`. |
 
 ## How to check things yourself
@@ -217,7 +235,8 @@ Type these in the terminal from the project folder.
 
 | Command | What it does |
 | --- | --- |
-| `npm test` | Runs every test: 173 for the growth engine, then 97 for the avatar kit. Both groups should say "passed". |
+| `npm test` | Runs every test: 173 for the growth engine, then 97 for the avatar kit, then 54 for the arena fight. Every group should say "passed". |
+| `npm run matchup` | Prints how pairs of bodies compare in a fight: each fighter's estimated lifts, then each boxing move's force, damage and knockdown chance in both directions. |
 | `npm run build:body` | Rebuilds the 3D body file and its checking pictures with Blender. It takes about a minute and needs Blender in `E:\XhoreTools`. Only needed after changing the build script. |
 | `npm run curve` | Prints a week-by-week table of how one muscle grows for a beginner. |
 | `npm run dev` | Starts the prototype page. It prints an address, normally `http://localhost:5173`. Open that in your browser. Press `Ctrl+C` in the terminal to stop it. |
@@ -227,6 +246,7 @@ Type these in the terminal from the project folder.
 
 Newest first.
 
+- **2026-11-13, evening:** Built the fight physics by its plan, in the new `games/arena-fight` folder, with 54 new tests. Each check from the design document is a test: a 50 kg beginner's estimated bench, squat and deadlift are 27, 36 and 46 kg; a 75 kg fighter's cross lands with 2,535 N as a beginner, 3,600 N as an intermediate and 4,718 N fully trained, close to the 2,381, 3,722 and 4,800 N measured in boxers. Checked with the new matchup report: an 80 kg advanced fighter's cross does 10.1 damage to a 50 kg beginner and breaks the beginner's guard, while the beginner's cross does 3.0 back. Nothing is on screen yet; the fight's rules and view come next.
 - **2026-11-13, later:** The owner asked for realistic fights: technique and physics decide, but strength counts too, since an untrained 50 kg person cannot lift 80 kg. Researched how real fights work: punch forces of novice, intermediate, elite and Olympic boxers, strength standards by body weight, how much the legs, trunk and arms add to a punch, how a strong neck protects against knockdowns, how fatigue weakens punches, kick speeds and forces, and what UFC results say about weight and reach. Wrote the fight physics as a design document in the format of a game-studio template (D-060), checked its numbers against the research (they land within about 7%), and wrote a step-by-step plan to build it. The owner decided the leaderboard holds one friend group only (D-059). Two new open questions: whether ranked fights between very different weights are adjusted (Q-16), and whether muscle growth should slow to real-life pace (Q-17).
 - **2026-11-13:** The owner corrected the design. The weekly match score out of 100 (sessions done 50, effort 30, personal bests 20) is gone. Fights are played Tekken-style, and whoever wins the most fights tops the leaderboard (D-056). The watched replay, where points chose the winner, is dropped, so step 9 is dropped and step 12 is now the played fight. A leaderboard is step 17. The owner also asked to stop focusing on the avatar, so the fight comes next (D-057). Two new open questions: how the leaderboard works (Q-14) and how much muscles count in a fight (Q-15).
 - **2026-11-12:**
@@ -252,9 +272,8 @@ Newest first.
 
 ## Next up
 
-1. Build the fight physics by its plan (the first part of step 11).
-2. The rest of step 11: rounds, moves in progress, blocking and a computer opponent, with its own plan.
-3. Add the game contract and the game list (step 10).
-4. The owner makes a free Adobe account for the fight animations, then the played fight (step 12).
-5. Settle Q-14 and Q-16, then add the leaderboard (step 17).
-6. Settle Q-13, then make the exercise list far more detailed (step 16).
+1. The rest of step 11: rounds, moves in progress, blocking and a computer opponent, with its own design document and plan.
+2. Add the game contract and the game list (step 10).
+3. The owner makes a free Adobe account for the fight animations, then the played fight (step 12).
+4. Settle Q-14 and Q-16, then add the leaderboard (step 17).
+5. Settle Q-13, then make the exercise list far more detailed (step 16).

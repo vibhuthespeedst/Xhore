@@ -16,6 +16,7 @@
     "test": "npm run test --workspaces --if-present",
     "test:watch": "npm run test:watch --workspace @xhore/engine",
     "curve": "npm run curve --workspace @xhore/engine",
+    "matchup": "npm run matchup --workspace @xhore/arena-fight",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }

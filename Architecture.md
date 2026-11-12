@@ -2,7 +2,7 @@
 
 How the project is put together, and the plan for the 3D avatar and the first game. [Decision.md](Decision.md) records why each choice was made. [ProjectFlow.md](ProjectFlow.md) records what is built so far. This file describes the design we are building toward.
 
-*Last updated: 2026-11-13. Built so far: the growth engine, the prototype page, the avatar kit, and the pipeline that builds the real 3D body. Everything else here is the plan.*
+*Last updated: 2026-11-13. Built so far: the growth engine, the prototype page, the avatar kit, the pipeline that builds the real 3D body, and the arena fight's physics. Everything else here is the plan.*
 
 ## 1. What shaped this design
 
@@ -23,7 +23,7 @@ Each layer is built on the ones below it in this table, never the other way roun
 | Layer | Folder | Its job | Status |
 | --- | --- | --- | --- |
 | Shell | [prototype/](prototype/) now, `app/` later | The screens: logging sets, the avatar screen, the leaderboard, and the list of games. | Started: the avatar screen exists |
-| Games | `games/arena-fight/`, more later | One folder per game. Each is a plug-in that can be removed. | Planned |
+| Games | [games/arena-fight/](games/arena-fight/), more later | One folder per game. Each is a plug-in that can be removed. | Started: the arena fight's physics is built |
 | Shared kits | [shared/avatar-kit/](shared/avatar-kit/), `shared/game-api/` | What every game needs: the 3D avatar, and the contract that games follow. | The avatar kit is built and shows the real body. The game contract is planned. |
 | Rules | [engine/](engine/) | The growth maths. The leaderboard's ranking rules join it later in their own folder. It has no screen. | Growth is built |
 | Server | `functions/` | The online side. It reuses the rules. | Later |
@@ -284,7 +284,7 @@ How the body makes a fighter stronger follows real physics and real strength dat
 
 | Part | Folder | Its job |
 | --- | --- | --- |
-| Fight core | `games/arena-fight/core/` | The rules of a fight. It has no graphics, and is written and tested like the growth engine. |
+| Fight core | [games/arena-fight/core/](games/arena-fight/core/) | The rules of a fight. It has no graphics, and is written and tested like the growth engine. Its physics, what a strike does, is built (D-058). |
 | Fight content | `games/arena-fight/content/` | The styles and moves, as data. |
 | Fight view | `games/arena-fight/view/` | Shows the fight in 3D: bodies, animations, camera, hit effects, health bars and buttons. |
 

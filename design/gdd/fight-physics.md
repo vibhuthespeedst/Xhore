@@ -1,6 +1,6 @@
 # Fight physics
 
-> **Status**: Designed
+> **Status**: Implemented
 > **Author**: project owner
 > **Last Updated**: 2026-11-13
 > **Last Verified**: 2026-11-13
@@ -240,7 +240,7 @@ body hits also drain stamina: 8 × (p / 28.8) / T_body
 | G | float | N | Guard strength (F12) |
 
 **Output range**: 0 to 35 by the cap. The cap is a tuning knob; a knockdown is the way a single blow ends things.
-**Worked example**: two intermediates: a clean cross takes 7 health. The 80 kg advanced fighter's cross takes 10.2 from the 50 kg beginner; the beginner's takes 3.0 back: more than three times less.
+**Worked example**: two intermediates: a clean cross takes 7 health. The 80 kg advanced fighter's cross takes 10.1 from the 50 kg beginner; the beginner's takes 3.0 back: more than three times less.
 
 ### F11. Knockdown chance (clean head hits only)
 
@@ -384,20 +384,22 @@ A weigh-in card before each fight (later): each fighter's weight, height, estima
 
 ## Acceptance Criteria
 
-- [ ] A 50 kg fighter with every muscle at 10 has estimated bench, squat and deadlift of 27, 36 and 46 kg (within 5%), and none reaches 80 kg.
-- [ ] An 80 kg fighter with every muscle at 50 has 124, 168 and 196 kg (within 5%).
-- [ ] A 75 kg fighter's rear cross: muscles at 10 → 2,300–2,700 N; at 30 → 3,400–3,800 N; at 100 → 4,500–5,000 N.
-- [ ] A jab carries 0.55–0.65 of a cross's force.
-- [ ] At the same training, a 100 kg fighter's cross is at least 1.5 times a 50 kg fighter's.
-- [ ] A cross's fist speed stays between 7 and 11 m/s for every body from 50 to 120 kg and every score from 10 to 100.
-- [ ] Two 75 kg intermediates: a clean cross accelerates the head 55–65 g.
-- [ ] A neck trained to 100 instead of 10 lowers the odds of a knockdown from the same cross to 0.3–0.6 times.
-- [ ] A fully tired fighter's cross carries 88–92% of the fresh force.
-- [ ] An 80 kg advanced fighter's cross does at least 3 times the head damage of a 50 kg beginner's cross in return.
-- [ ] A blocked strike does less damage than a clean one; a strike over 1.6 times the guard breaks it.
-- [ ] Body hits never cause a knockdown and always drain stamina.
-- [ ] The same inputs always give the same outputs.
-- [ ] No tuning number is written anywhere except `FIGHT_SETTINGS`.
+Each of these is an automated test in `games/arena-fight/tests/`.
+
+- [x] A 50 kg fighter with every muscle at 10 has estimated bench, squat and deadlift of 27, 36 and 46 kg (within 5%), and none reaches 80 kg.
+- [x] An 80 kg fighter with every muscle at 50 has 124, 168 and 196 kg (within 5%).
+- [x] A 75 kg fighter's rear cross: muscles at 10 → 2,300–2,700 N; at 30 → 3,400–3,800 N; at 100 → 4,500–5,000 N.
+- [x] A jab carries 0.55–0.65 of a cross's force.
+- [x] At the same training, a 100 kg fighter's cross is at least 1.5 times a 50 kg fighter's.
+- [x] A cross's fist speed stays between 7 and 11 m/s for every body from 50 to 120 kg and every score from 10 to 100.
+- [x] Two 75 kg intermediates: a clean cross accelerates the head 55–65 g.
+- [x] A neck trained to 100 instead of 10 lowers the odds of a knockdown from the same cross to 0.3–0.6 times.
+- [x] A fully tired fighter's cross carries 88–92% of the fresh force.
+- [x] An 80 kg advanced fighter's cross does at least 3 times the head damage of a 50 kg beginner's cross in return.
+- [x] A blocked strike does less damage than a clean one; a strike over 1.6 times the guard breaks it.
+- [x] Body hits never cause a knockdown and always drain stamina.
+- [x] The same inputs always give the same outputs.
+- [x] No number of the physics rules is written anywhere except `FIGHT_SETTINGS`. The moves' own numbers are data in `content/boxing.ts`, because a style is data (Architecture section 6.2).
 
 ## Open Questions
 
