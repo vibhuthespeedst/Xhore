@@ -1,0 +1,24 @@
+{
+  "name": "@xhore/arena-fight",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The arena fight game: its physics and rules now, its 3D view later. A plug-in that only reads avatar scores.",
+  "main": "./core/index.ts",
+  "types": "./core/index.ts",
+  "exports": {
+    ".": "./core/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xhore/engine": "*"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

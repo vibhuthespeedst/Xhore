@@ -6,7 +6,8 @@
   "workspaces": [
     "engine",
     "shared/*",
-    "prototype"
+    "prototype",
+    "games/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspace @xhore/prototype",
