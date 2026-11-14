@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
-import { Box3, Color, MathUtils, Mesh, MeshStandardMaterial, Quaternion, Scene, Vector3 } from 'three'
+import { Box3, Color, MathUtils, Mesh, MeshStandardMaterial, Quaternion, Scene, ShaderLib, Vector3 } from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { REGION_IDS, regionRecord } from '@xhore/engine'
 import type { RegionId } from '@xhore/engine'
@@ -50,6 +50,13 @@ function shown(mesh: Mesh, regionId: RegionId): number {
   return mesh.morphTargetInfluences?.[index] ?? Number.NaN
 }
 
+/** How strongly a mesh is showing one region's definition shape, 0 to 1. */
+function shownDefinition(mesh: Mesh, regionId: RegionId): number {
+  const index = mesh.morphTargetDictionary?.[`${regionId}_definition`]
+  if (index === undefined) throw new Error(`mesh has no definition shape for ${regionId}`)
+  return mesh.morphTargetInfluences?.[index] ?? Number.NaN
+}
+
 function skinOf(body: AvatarBody): MeshStandardMaterial[] {
   return meshesOf(body)
     .map((mesh) => mesh.material)
@@ -78,6 +85,22 @@ describe('the body file', () => {
       }
     }
     expect(meshesOf(body).length).toBeGreaterThan(0)
+  })
+
+  it('holds a definition shape and a mask for every region', async () => {
+    const body = await loadBody()
+    for (const mesh of meshesOf(body)) {
+      for (const regionId of REGION_IDS) {
+        expect(mesh.morphTargetDictionary).toHaveProperty(`${regionId}_definition`)
+        expect(mesh.geometry.getAttribute(`_mask_${regionId}`)).toBeTruthy()
+      }
+    }
+  })
+
+  it('carries the muscle lines on the skin and nowhere else', async () => {
+    const materials = materialsByName(await loadBody())
+    expect(materials.get('skin')?.normalMap).toBeTruthy()
+    expect(materials.get('shorts')?.normalMap).toBeNull()
   })
 
   it('has a photographic skin, eyes, eyebrows, eyelashes and hair', async () => {
@@ -182,16 +205,64 @@ describe('the body file', () => {
     for (const mesh of meshesOf(body)) expect(shown(mesh, 'biceps')).toBe(0)
   })
 
-  it('shows definition as glossier skin without changing any shape', async () => {
+  it('shows a region’s definition on that region only, and more of it on a bigger muscle', async () => {
     const body = await loadBody()
-    body.applyScores(scores(50, 0))
-    const softRoughness = skinOf(body).map((material) => material.roughness)
+    body.applyScores(scores(50, 0, { biceps: { size: 50, definition: 100 } }))
+    for (const mesh of meshesOf(body)) {
+      expect(shownDefinition(mesh, 'biceps')).toBeCloseTo(0.75, 5)
+      expect(shownDefinition(mesh, 'abs')).toBe(0)
+      // Definition never changes how big a muscle is shown.
+      expect(shown(mesh, 'biceps')).toBeCloseTo(0.5, 5)
+    }
 
+    body.applyScores(scores(100, 100))
+    for (const mesh of meshesOf(body)) expect(shownDefinition(mesh, 'biceps')).toBe(1)
+  })
+
+  it('draws the muscle lines over the defined muscle and nowhere else', async () => {
+    const body = await loadBody()
+    const kneeHeight = body.height * 0.32
+
+    body.applyScores(scores(100, 0, { calves: { size: 100, definition: 100 } }))
+    let linedPoints = 0
+    for (const mesh of meshesOf(body)) {
+      const lines = mesh.geometry.getAttribute('definition')
+      const position = mesh.geometry.getAttribute('position')
+      for (let point = 0; point < lines.count; point += 1) {
+        expect(lines.getX(point)).toBeLessThanOrEqual(1)
+        if (lines.getX(point) > 0.3) {
+          linedPoints += 1
+          expect(position.getY(point)).toBeLessThan(kneeHeight)
+        }
+      }
+    }
+    expect(linedPoints).toBeGreaterThan(50)
+
+    body.applyScores(scores(100, 0))
+    for (const mesh of meshesOf(body)) {
+      const lines = mesh.geometry.getAttribute('definition')
+      for (let point = 0; point < lines.count; point += 1) expect(lines.getX(point)).toBe(0)
+    }
+  })
+
+  it('teaches the skin’s shader to fade the lines in, and leaves the skin’s own roughness alone', async () => {
+    const body = await loadBody()
+    const roughness = skinOf(body).map((material) => material.roughness)
     body.applyScores(scores(50, 100))
-    skinOf(body).forEach((material, index) => {
-      expect(material.roughness).toBeLessThan(softRoughness[index] ?? 0)
-    })
-    for (const mesh of meshesOf(body)) expect(shown(mesh, 'abs')).toBeCloseTo(0.5, 5)
+    expect(skinOf(body).map((material) => material.roughness)).toEqual(roughness)
+
+    expect(skinOf(body).length).toBeGreaterThan(0)
+    for (const material of skinOf(body)) {
+      const shader = {
+        uniforms: {},
+        vertexShader: ShaderLib.standard.vertexShader,
+        fragmentShader: ShaderLib.standard.fragmentShader,
+      }
+      material.onBeforeCompile(shader as never, null as never)
+      expect(shader.vertexShader).toContain('vDefinition = definition;')
+      expect(shader.fragmentShader).toContain('normalScale * vDefinition')
+      expect(shader.fragmentShader).not.toContain('#include <normal_fragment_maps>')
+    }
   })
 
   it('lights up only the highlighted region, and clears', async () => {

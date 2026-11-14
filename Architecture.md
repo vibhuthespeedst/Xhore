@@ -2,7 +2,7 @@
 
 How the project is put together, and the plan for the 3D avatar and the first game. [Decision.md](Decision.md) records why each choice was made. [ProjectFlow.md](ProjectFlow.md) records what is built so far. This file describes the design we are building toward.
 
-*Last updated: 2026-11-13. Built so far: the growth engine, the prototype page, the avatar kit, the pipeline that builds the real 3D body, and the arena fight's physics. Everything else here is the plan.*
+*Last updated: 2026-11-14. Built so far: the growth engine, the prototype page, the avatar kit, the pipeline that builds the real 3D body, definition shown muscle by muscle, and the arena fight's physics. Everything else here is the plan.*
 
 ## 1. What shaped this design
 
@@ -136,9 +136,13 @@ One 3D body file holds everything that is the same for every player:
 
 - the body's surface and skin,
 - a standard human skeleton, so ready-made animations fit it,
-- one size shape for each of the 19 regions, named after the region, such as `calves_size`. Definition shapes, named like `calves_definition`, are planned and not in the file yet.
+- two shapes for each of the 19 regions, named after the region: a size shape such as `calves_size`, and a definition shape such as `calves_definition` that raises the muscle's bellies,
+- a mask for each region, such as `_mask_calves`, saying how much of each point of skin is that muscle's,
+- one picture of every muscle's lines, carried by the skin as its normal map.
 
-A player's avatar is that shared body plus their own scores from the growth engine. Each shape is blended in by `score / 100`, so a calf score of 60 shows the calf shape at 60%. Training calves grows the calves and nothing else.
+A player's avatar is that shared body plus their own scores from the growth engine. Each size shape is blended in by `score / 100`, so a calf score of 60 shows the calf shape at 60%. Training calves grows the calves and nothing else.
+
+Definition is shown muscle by muscle too (D-062). A muscle's definition strength is its definition times (0.5 + 0.5 × size / 100), so lines need definition and show more on a bigger muscle. That strength blends in the muscle's definition shape, and through the masks it decides how much of the lines picture shows on each point of skin, so the six-pack appears only as the abs are defined and the line along the biceps only as the biceps are. The abs, obliques and lower back also draw the waist in. The fading is done by the avatar kit's shader. Any other program that opens the file shows the lines in full. The rules and numbers are in [design/gdd/muscle-definition.md](design/gdd/muscle-definition.md).
 
 ### 5.2 Where the body comes from
 
@@ -176,7 +180,6 @@ The skin, eyes, eyebrows, eyelashes and hair come from MPFB's free "makehuman_sy
 
 What the body does not have yet:
 
-- definition shapes, so definition is shown for the whole body as glossier skin (D-048),
 - a female body (Q-12),
 - a choice of hairstyle, eye colour or face for each player.
 

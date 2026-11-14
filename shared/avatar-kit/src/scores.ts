@@ -27,3 +27,14 @@ export function scoreToStrength(score: number): number {
 export function lerp(from: number, to: number, amount: number): number {
   return from + (to - from) * amount
 }
+
+/** The share of a muscle's lines that shows at full definition on its smallest size. */
+const DEFINITION_FLOOR = 0.5
+
+/**
+ * How strongly a muscle's bellies and lines show, 0 to 1. They need definition,
+ * and they show more on a bigger muscle.
+ */
+export function definitionStrength(size: number, definition: number): number {
+  return scoreToStrength(definition) * lerp(DEFINITION_FLOOR, 1, scoreToStrength(size))
+}

@@ -20,3 +20,4 @@ npm-debug.log*
 
 # avatar pipeline: the single tiles are only the raw material for the contact sheets
 tools/avatar-pipeline/previews/tiles/
+__pycache__/

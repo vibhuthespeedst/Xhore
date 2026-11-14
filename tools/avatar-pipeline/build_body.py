@@ -6,8 +6,11 @@ Run it through the wrapper, which finds Blender for you:
 
 What it makes:
   * a .glb file holding one body with a photographic skin, eyes, eyebrows,
-    eyelashes and hair, a standard (Mixamo-named) skeleton, and one shape per
-    muscle region named "<region>_size";
+    eyelashes and hair, a standard (Mixamo-named) skeleton, and for each
+    muscle region a shape named "<region>_size", a shape named
+    "<region>_definition" and a mask named "_mask_<region>" saying which skin
+    is that muscle's;
+  * a picture of the fine muscle lines, carried by the skin as its normal map;
   * contact sheets of every region, and finished-look pictures, so the result
     can be checked by eye.
 
@@ -18,6 +21,11 @@ How the shapes are made: MPFB can build the same body slim and heavily
 muscled. The difference between those two is split into the 19 regions with
 soft masks, so each shape grows one muscle and all of them together give the
 muscled body back.
+
+How definition is made: the big muscle bellies and the fine lines between
+muscles are placed by muscle_lines.py. The bellies are raised as shape, the
+waist is drawn in the way MPFB's leaner body is, and the lines are baked into
+the normal map. The page fades all three in muscle by muscle.
 
 Blender's axes are used throughout: z is up, the body faces -y, its left is +x.
 """
@@ -36,6 +44,9 @@ from bl_ext.blender_org.mpfb.entities.objectproperties import HumanObjectPropert
 from bl_ext.blender_org.mpfb.services.assetservice import AssetService
 from bl_ext.blender_org.mpfb.services.humanservice import HumanService
 from bl_ext.blender_org.mpfb.services.targetservice import TargetService
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import muscle_lines  # noqa: E402
 
 # The region ids, in the growth engine's order. Keep in step with engine/src/regions.ts.
 REGIONS = [
@@ -68,6 +79,13 @@ DETAIL_TARGETS = {
 }
 DETAIL_WEIGHT = 1.3
 GROWTH_GAIN = 1.2
+
+# The muscled body with less fat over it. Full definition draws the waist in this far.
+LEAN_MACRO = {"gender": 1.0, "muscle": 1.0, "weight": 0.2}
+WAIST_REGIONS = ("abs", "obliques", "lower_back")
+# The picture of the fine muscle lines, in texels along each edge.
+MUSCLE_MAP_SIZE = 2048
+MUSCLE_LINES_NODE = "muscle-lines"
 
 # A detail shape counts as fully "inside" its region once a point moves this
 # fraction of the shape's largest movement.
@@ -219,7 +237,11 @@ def create_body():
     set_macro(body, FULL_MACRO)
     for key in detail_keys:
         key.value = DETAIL_WEIGHT
-    growth = (mix_coords(body) - base) * GROWTH_GAIN
+    full = mix_coords(body)
+    growth = (full - base) * GROWTH_GAIN
+    # The same muscled body carrying less fat: what getting defined does to the waist.
+    set_macro(body, LEAN_MACRO)
+    lean = mix_coords(body) - full
 
     # Back to the slim body, which becomes the mesh itself with no MPFB shape keys left.
     for key in detail_keys:
@@ -230,7 +252,7 @@ def create_body():
     if drift > 1e-4:
         raise RuntimeError(f"Baking moved the slim body by {drift:.5f} m")
 
-    return body, base, growth, support
+    return body, base, growth, lean, support
 
 
 def delete_helpers(body):
@@ -390,31 +412,103 @@ def region_masks(body, rig, coords, support):
     return masks
 
 
-def add_region_shapes(body, coords, growth, masks):
-    """One shape key per region, plus the masks stored on the mesh so they survive later cuts."""
+def point_normals(mesh):
+    normals = np.empty(len(mesh.vertices) * 3, dtype=np.float32)
+    mesh.vertices.foreach_get("normal", normals)
+    return normals.reshape(-1, 3).astype(np.float64)
+
+
+def landmarks(rig):
+    """The joints muscle_lines.py places its features by, from the skeleton's left side."""
+
+    def bone(name):
+        return rig.data.bones[BONE_PREFIX + name]
+
+    def ends(name):
+        return np.array(bone(name).head_local), np.array(bone(name).tail_local)
+
+    return {
+        "hips_z": bone("Hips").head_local.z,
+        "neck_z": bone("Neck").head_local.z,
+        "shoulder_x": bone("LeftArm").head_local.x,
+        "arm": ends("LeftArm"),
+        "forearm": ends("LeftForeArm"),
+        "thigh": ends("LeftUpLeg"),
+        "shin": ends("LeftLeg"),
+    }
+
+
+def muscle_bellies(body, rig, coords, masks):
+    """How each point moves when the muscle under it is fully defined: out along its normal."""
+    normals = point_normals(body.data)
+    gates = muscle_lines.gates_from_masks(masks)
+    rise = muscle_lines.height(coords, normals, gates, landmarks(rig), muscle_lines.SHAPE)
+    return normals * rise[:, None]
+
+
+def add_region_shapes(body, coords, growth, bellies, lean, masks):
+    """Two shape keys per region, plus the masks stored on the mesh, where they survive later cuts and are exported."""
     mesh = body.data
     body.shape_key_add(name="Basis", from_mix=False)
     for region in REGIONS:
+        mask = masks[region][:, None]
         key = body.shape_key_add(name=f"{region}_size", from_mix=False)
-        grown = coords + growth * masks[region][:, None]
-        key.data.foreach_set("co", grown.astype(np.float32).ravel())
+        key.data.foreach_set("co", (coords + growth * mask).astype(np.float32).ravel())
         key.value = 0.0
-        layer = mesh.attributes.new(f"mask_{region}", "FLOAT", "POINT")
+        defined = bellies + lean if region in WAIST_REGIONS else bellies
+        key = body.shape_key_add(name=f"{region}_definition", from_mix=False)
+        key.data.foreach_set("co", (coords + defined * mask).astype(np.float32).ravel())
+        key.value = 0.0
+        # The exporter only writes attributes whose names start with an underscore.
+        layer = mesh.attributes.new(f"_mask_{region}", "FLOAT", "POINT")
         layer.data.foreach_set("value", masks[region].astype(np.float32))
     mesh.update()
 
 
-def take_masks(body):
-    """Reads the stored masks back, in the mesh's current point order, and removes them from the mesh."""
+def read_masks(body):
+    """Reads the stored masks back, in the mesh's current point order."""
     mesh = body.data
     masks = {}
     for region in REGIONS:
-        layer = mesh.attributes[f"mask_{region}"]
         values = np.empty(len(mesh.vertices), dtype=np.float32)
-        layer.data.foreach_get("value", values)
+        mesh.attributes[f"_mask_{region}"].data.foreach_get("value", values)
         masks[region] = values.astype(np.float64)
-        mesh.attributes.remove(layer)
     return masks
+
+
+def add_muscle_lines(body, rig, masks, size, previews_dir):
+    """Bakes the fine muscle lines into a picture and hangs it on the skin as its normal map."""
+    mesh = body.data
+    positions = read_coords(mesh.vertices, len(mesh.vertices))
+    mesh.calc_loop_triangles()
+    triangles = len(mesh.loop_triangles)
+    corner_points = np.empty(triangles * 3, dtype=np.int32)
+    mesh.loop_triangles.foreach_get("vertices", corner_points)
+    corner_loops = np.empty(triangles * 3, dtype=np.int32)
+    mesh.loop_triangles.foreach_get("loops", corner_loops)
+    uv = np.empty(len(mesh.loops) * 2, dtype=np.float32)
+    mesh.uv_layers.active.data.foreach_get("uv", uv)
+    uv = uv.reshape(-1, 2)[corner_loops].reshape(triangles, 3, 2)
+
+    pixels, filled = muscle_lines.normal_map(
+        positions, point_normals(mesh), muscle_lines.gates_from_masks(masks),
+        corner_points.reshape(triangles, 3), uv, landmarks(rig), size,
+    )
+    image = bpy.data.images.new("muscle_lines", size, size, alpha=False)
+    image.colorspace_settings.name = "Non-Color"
+    image.pixels.foreach_set(np.concatenate([pixels, np.ones((size, size, 1))], axis=2).astype(np.float32).ravel())
+    image.filepath_raw = os.path.join(previews_dir, "muscle-lines.png")
+    image.file_format = "PNG"
+    image.save()
+
+    tree = mesh.materials["skin"].node_tree
+    texture = tree.nodes.new("ShaderNodeTexImage")
+    texture.image = image
+    lines = tree.nodes.new("ShaderNodeNormalMap")
+    lines.name = MUSCLE_LINES_NODE
+    tree.links.new(texture.outputs["Color"], lines.inputs["Color"])
+    tree.links.new(lines.outputs["Normal"], tree.nodes["Principled BSDF"].inputs["Normal"])
+    return float(filled.mean())
 
 
 # ---- skin, eyes, hair and trunks ------------------------------------------
@@ -636,7 +730,7 @@ def contact_sheet(tile_paths, columns, out_path):
     bpy.data.images.remove(image)
 
 
-def render_checks(body, assets, masks, previews_dir):
+def render_checks(body, assets, masks, camera, previews_dir):
     """One tile per region, grown to 100 with its area in red, from the front, back and side.
 
     The tiles run: the slim body, the 19 regions in the engine's order, then every region at 100.
@@ -645,7 +739,6 @@ def render_checks(body, assets, masks, previews_dir):
     scene = bpy.context.scene
     for asset in assets:
         asset.hide_render = True
-    camera = setup_render(scene, 300, 440)
     look_at = Vector((0.0, 0.0, body.dimensions.z / 2.0))
     keys = body.data.shape_keys.key_blocks
     tiles_dir = os.path.join(previews_dir, "tiles")
@@ -672,7 +765,6 @@ def render_checks(body, assets, masks, previews_dir):
         keys[f"{region}_size"].value = 0.0
     for asset in assets:
         asset.hide_render = False
-    return camera
 
 
 def render_look(body, camera, previews_dir):
@@ -709,17 +801,32 @@ def render_look(body, camera, previews_dir):
         scene.render.filepath = os.path.join(previews_dir, f"look-{name}.png")
         bpy.ops.render.render(write_still=True)
 
+    lines = body.data.materials["skin"].node_tree.nodes[MUSCLE_LINES_NODE]
+
+    def show(size, definition):
+        for region in REGIONS:
+            keys[f"{region}_size"].value = size
+            keys[f"{region}_definition"].value = definition
+        # Blender can only show the lines on the whole body at once. The page fades them in muscle by muscle.
+        lines.inputs["Strength"].default_value = definition
+
     middle = Vector((0.0, 0.0, height / 2.0))
     head = Vector((0.0, 0.0, height - 0.13))
+    show(0.0, 0.0)
     shoot("face", head, 1.1, 0, 640, 640)
     shoot("face-side", head, 1.1, 55, 640, 640)
     shoot("slim-front", middle, 5.2, 0, 560, 820)
-    for region in REGIONS:
-        keys[f"{region}_size"].value = 1.0
+    show(1.0, 0.0)
     shoot("grown-front", middle, 5.2, 0, 560, 820)
     shoot("grown-back", middle, 5.2, 180, 560, 820)
-    for region in REGIONS:
-        keys[f"{region}_size"].value = 0.0
+    show(0.15, 1.0)
+    shoot("toned-front", middle, 5.2, 0, 840, 1230)
+    show(0.6, 1.0)
+    shoot("defined-front", middle, 5.2, 0, 840, 1230)
+    shoot("defined-back", middle, 5.2, 180, 840, 1230)
+    shoot("defined-side", middle, 5.2, 90, 840, 1230)
+    show(0.0, 0.0)
+    lines.inputs["Strength"].default_value = 1.0  # the file carries the lines at full strength
 
 
 # ---- stance and export ----------------------------------------------------
@@ -769,6 +876,7 @@ def export_glb(body, assets, rig, out_path):
         export_morph=True,
         export_morph_normal=True,
         export_morph_tangent=False,
+        export_attributes=True,  # the region masks
         export_animations=False,
         export_materials="EXPORT",
         export_image_format="WEBP",  # small, and keeps the see-through parts of hair and lashes
@@ -786,16 +894,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, help="where to write the .glb")
     parser.add_argument("--previews", required=True, help="folder for the checking pictures")
+    parser.add_argument("--fast", action="store_true", help="skip the region-by-region checking sheets")
+    parser.add_argument("--map-size", type=int, default=MUSCLE_MAP_SIZE, help="texels along each edge of the muscle lines picture")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
     os.makedirs(args.previews, exist_ok=True)
 
-    body, base, growth, support = create_body()
+    body, base, growth, lean, support = create_body()
     rig = HumanService.add_builtin_rig(body, RIG, import_weights=True)
     assets = add_assets(body)
 
     keep = delete_helpers(body)
     coords = base[keep]
     growth = growth[keep]
+    lean = lean[keep]
     support = {part: values[keep] for part, values in support.items()}
     drift = np.abs(read_coords(body.data.vertices, len(body.data.vertices)) - coords).max()
     if drift > 1e-4:
@@ -810,14 +921,25 @@ def main():
         reach = np.linalg.norm(growth * mask[:, None], axis=1).max() * 100
         print(f"REPORT {region:12s} points {int(np.sum(mask > 0.05)):5d}  largest growth {reach:5.2f} cm")
 
-    add_region_shapes(body, coords, growth, masks)
+    bellies = muscle_bellies(body, rig, coords, masks)
+    waist = sum(masks[region] for region in WAIST_REGIONS)
+    print(
+        f"REPORT definition: bellies rise up to {np.linalg.norm(bellies, axis=1).max() * 1000:.1f} mm, "
+        f"the waist draws in up to {np.linalg.norm(lean * waist[:, None], axis=1).max() * 100:.2f} cm"
+    )
+
+    add_region_shapes(body, coords, growth, bellies, lean, masks)
     shorts_faces = add_trunks(body, rig)
-    masks = take_masks(body)
+    masks = read_masks(body)
+    covered = add_muscle_lines(body, rig, masks, args.map_size, args.previews)
 
     print(f"REPORT points {len(body.data.vertices)}, faces {len(body.data.polygons)}, bones {len(rig.data.bones)}")
     print(f"REPORT height {body.dimensions.z:.3f} m, trunks faces {shorts_faces}")
+    print(f"REPORT muscle lines picture {args.map_size} px, {covered * 100:.0f}% of it is skin")
 
-    camera = render_checks(body, assets, masks, args.previews)
+    camera = setup_render(bpy.context.scene, 300, 440)
+    if not args.fast:
+        render_checks(body, assets, masks, camera, args.previews)
     relax_stance(rig)
     render_look(body, camera, args.previews)
 
@@ -826,4 +948,5 @@ def main():
     print("DONE")
 
 
-main()
+if __name__ == "__main__":
+    main()

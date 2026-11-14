@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { lerp, scoreToStrength } from '../src/scores.js'
+import { definitionStrength, lerp, scoreToStrength } from '../src/scores.js'
+
+describe('definitionStrength', () => {
+  it('shows nothing without definition, however big the muscle', () => {
+    expect(definitionStrength(0, 0)).toBe(0)
+    expect(definitionStrength(100, 0)).toBe(0)
+  })
+
+  it('shows half on the smallest muscle and all of it on the biggest', () => {
+    expect(definitionStrength(0, 100)).toBeCloseTo(0.5, 10)
+    expect(definitionStrength(100, 100)).toBe(1)
+  })
+
+  it('rises with both size and definition', () => {
+    expect(definitionStrength(50, 100)).toBeCloseTo(0.75, 10)
+    expect(definitionStrength(50, 50)).toBeCloseTo(0.375, 10)
+  })
+
+  it('shows anything that is not a usable number as 0', () => {
+    expect(definitionStrength(50, Number.NaN)).toBe(0)
+    expect(definitionStrength(Number.NaN, 100)).toBeCloseTo(0.5, 10)
+  })
+})
 
 describe('scoreToStrength', () => {
   it('maps the 0 to 100 score range onto 0 to 1', () => {

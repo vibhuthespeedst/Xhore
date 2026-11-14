@@ -1,5 +1,6 @@
 // Finds Blender and runs build_body.py with it, without opening Blender's window.
 // Usage: npm run build:body
+//        npm run build:body -- --fast    (skips the region-by-region checking sheets)
 //
 // Blender is looked for in the folder named by BLENDER_PATH (the full path to
 // blender.exe) if that is set, and otherwise in E:\XhoreTools, where this
@@ -41,7 +42,7 @@ const output = join(projectRoot, 'shared', 'avatar-kit', 'assets', 'body-male.gl
 const previews = join(here, 'previews')
 
 console.log(`Building the body with ${blender}`)
-console.log('This takes about a minute.')
+console.log('This takes about two minutes.')
 
 const run = spawnSync(
   blender,
@@ -56,6 +57,7 @@ const run = spawnSync(
     output,
     '--previews',
     previews,
+    ...process.argv.slice(2),
   ],
   { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
 )

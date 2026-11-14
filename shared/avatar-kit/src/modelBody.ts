@@ -5,22 +5,35 @@ import { REGION_IDS, regionRecord } from '@xhore/engine'
 import type { RegionId } from '@xhore/engine'
 import type { AvatarBody } from './body.js'
 import { breathingPose } from './breathing.js'
-import { lerp, scoreToStrength } from './scores.js'
+import { definitionStrength, scoreToStrength } from './scores.js'
 import type { RegionScores } from './scores.js'
 
-/** The body file names each region's shape like this. The pipeline that builds the file uses the same rule. */
+/** The body file names each region's shapes and mask like this. The pipeline that builds the file uses the same rules. */
 function sizeShapeName(regionId: RegionId): string {
   return `${regionId}_size`
+}
+
+function definitionShapeName(regionId: RegionId): string {
+  return `${regionId}_definition`
+}
+
+function maskName(regionId: RegionId): string {
+  return `_mask_${regionId}`
 }
 
 const SKIN_MATERIAL = 'skin'
 const EYES_MATERIAL = 'eyes'
 /**
- * Definition shows as skin that goes from soft and matte to tight with a slight
+ * Skin over a defined muscle goes from soft and matte to tight with a slight
  * sheen. Much glossier than this and the skin reflects the room like plastic.
  */
 const SOFT_ROUGHNESS = 0.7
 const CUT_ROUGHNESS = 0.52
+/** How hard the muscle lines tilt the light at full definition. 1 is as the body file drew them. */
+const LINE_STRENGTH = 1
+/** How much darker the walls of a muscle line are drawn than the skin round them. */
+const LINE_SHADE = 0.24
+const DEFINITION_ATTRIBUTE = 'definition'
 /** Eyes are wet, so they catch a sharp glint of light. */
 const EYE_ROUGHNESS = 0.12
 /** Hair, eyebrows and eyelashes are flat cards. Texels more see-through than this are not drawn. */
@@ -35,8 +48,14 @@ interface Part {
   readonly mesh: Mesh
   /** Where each region's size shape sits in this mesh's list of shapes. */
   readonly shapeIndex: Readonly<Record<RegionId, number>>
+  /** Where each region's definition shape sits in the same list. */
+  readonly definitionIndex: Readonly<Record<RegionId, number>>
+  /** One number per point for each region: how much of that point's skin is the region's, 0 to 1. */
+  readonly masks: Readonly<Record<RegionId, Float32Array>>
   /** One number per point: how strongly it glows while a region is lit up. */
   readonly highlight: BufferAttribute
+  /** One number per point: how strongly the muscle lines show there. */
+  readonly definition: BufferAttribute
 }
 
 /** The skeleton's bones are named like "mixamorig:Spine2" in the file. three.js drops the colon when loading. */
@@ -83,10 +102,27 @@ function poseBone(resting: RestingBone | null, forward: number, anticlockwise: n
 }
 
 /**
- * Teaches a standard material to glow wherever the mesh's `highlight` value is
- * above zero, leaving everything else about the material alone.
+ * The body file's normal map holds every muscle's lines at full strength. This
+ * shows them only as far as the mesh's `definition` value says at each spot:
+ * the lines tilt the light, their walls are drawn a little darker, and the
+ * skin there takes on a slight sheen.
  */
-function addHighlightGlow(material: MeshStandardMaterial): void {
+const MUSCLE_LINES = `
+#ifdef USE_NORMALMAP_TANGENTSPACE
+	vec3 mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;
+	diffuseColor.rgb *= 1.0 - ${LINE_SHADE.toFixed(3)} * min( 1.0, length( mapN.xy ) * 2.0 ) * vDefinition;
+	mapN.xy *= normalScale * vDefinition * ${LINE_STRENGTH.toFixed(3)};
+	normal = normalize( tbn * mapN );
+#endif
+roughnessFactor *= mix( 1.0, ${(CUT_ROUGHNESS / SOFT_ROUGHNESS).toFixed(4)}, vDefinition );
+`
+
+/**
+ * Teaches a standard material to glow wherever the mesh's `highlight` value is
+ * above zero and, for skin, to show the muscle lines wherever its `definition`
+ * value is. Everything else about the material is left alone.
+ */
+function teachShader(material: MeshStandardMaterial, withMuscleLines: boolean): void {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.highlightColour = {
       value: new Color(HIGHLIGHT_COLOUR).multiplyScalar(HIGHLIGHT_STRENGTH),
@@ -94,21 +130,27 @@ function addHighlightGlow(material: MeshStandardMaterial): void {
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
-        `#include <common>\nattribute float ${HIGHLIGHT_ATTRIBUTE};\nvarying float vHighlight;`,
+        `#include <common>\nattribute float ${HIGHLIGHT_ATTRIBUTE};\nvarying float vHighlight;\nattribute float ${DEFINITION_ATTRIBUTE};\nvarying float vDefinition;`,
       )
-      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvHighlight = ${HIGHLIGHT_ATTRIBUTE};`)
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>\nvHighlight = ${HIGHLIGHT_ATTRIBUTE};\nvDefinition = ${DEFINITION_ATTRIBUTE};`,
+      )
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nvarying float vHighlight;\nuniform vec3 highlightColour;',
+        '#include <common>\nvarying float vHighlight;\nvarying float vDefinition;\nuniform vec3 highlightColour;',
       )
       .replace(
         '#include <emissivemap_fragment>',
         '#include <emissivemap_fragment>\ntotalEmissiveRadiance += highlightColour * vHighlight;',
       )
+    if (withMuscleLines) {
+      shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', MUSCLE_LINES)
+    }
   }
-  // Keeps this altered program apart from the unaltered one in three.js's cache.
-  material.customProgramCacheKey = () => 'avatar-highlight-glow'
+  // Keeps each altered program apart from the unaltered one in three.js's cache.
+  material.customProgramCacheKey = () => (withMuscleLines ? 'avatar-muscle-lines' : 'avatar-highlight-glow')
 }
 
 /**
@@ -141,8 +183,9 @@ function materialsOf(mesh: Mesh): MeshStandardMaterial[] {
 }
 
 /**
- * Wraps a loaded body file as a body. The file must hold one shape per region,
- * named "<region>_size", on every mesh that grows. Anything else about it
+ * Wraps a loaded body file as a body. On every mesh that grows, the file must
+ * hold two shapes per region, named "<region>_size" and "<region>_definition",
+ * and a mask per region named "_mask_<region>". Anything else about it
  * (skeleton, materials, hair and eyes, how many meshes it is split into) is
  * free to change.
  */
@@ -172,25 +215,40 @@ export function createModelBody(root: Object3D): AvatarBody {
     const names = child.morphTargetDictionary
     if (!names || !child.morphTargetInfluences) return
 
-    const shapeIndex = regionRecord((regionId) => {
-      const index = names[sizeShapeName(regionId)]
-      if (index === undefined) {
-        throw new Error(`The body file has no shape named "${sizeShapeName(regionId)}"`)
-      }
+    const shapeNamed = (name: string): number => {
+      const index = names[name]
+      if (index === undefined) throw new Error(`The body file has no shape named "${name}"`)
       return index
-    })
+    }
+    const shapeIndex = regionRecord((regionId) => shapeNamed(sizeShapeName(regionId)))
+    const definitionIndex = regionRecord((regionId) => shapeNamed(definitionShapeName(regionId)))
 
     const pointCount = child.geometry.getAttribute('position').count
+    const masks = regionRecord((regionId) => {
+      const stored = child.geometry.getAttribute(maskName(regionId))
+      if (!stored) throw new Error(`The body file has no mask named "${maskName(regionId)}"`)
+      const mask = new Float32Array(pointCount)
+      for (let point = 0; point < pointCount; point += 1) mask[point] = stored.getX(point)
+      return mask
+    })
+
     const highlight = new BufferAttribute(new Float32Array(pointCount), 1)
     child.geometry.setAttribute(HIGHLIGHT_ATTRIBUTE, highlight)
+    const definition = new BufferAttribute(new Float32Array(pointCount), 1)
+    child.geometry.setAttribute(DEFINITION_ATTRIBUTE, definition)
 
     for (const material of materialsOf(child)) {
-      if (!glowMaterials.has(material)) addHighlightGlow(material)
+      const isSkin = material.name === SKIN_MATERIAL
+      if (!glowMaterials.has(material)) {
+        teachShader(material, isSkin)
+        // The shader lowers this where a muscle is defined.
+        if (isSkin) material.roughness = SOFT_ROUGHNESS
+      }
       glowMaterials.add(material)
-      if (material.name === SKIN_MATERIAL) skinMaterials.add(material)
+      if (isSkin) skinMaterials.add(material)
     }
 
-    parts.push({ mesh: child, shapeIndex, highlight })
+    parts.push({ mesh: child, shapeIndex, definitionIndex, masks, highlight, definition })
   })
 
   if (parts.length === 0) throw new Error('The body file holds no mesh with muscle shapes')
@@ -213,20 +271,24 @@ export function createModelBody(root: Object3D): AvatarBody {
     kind: 'model',
 
     applyScores(scores: RegionScores): void {
-      let definitionTotal = 0
-      for (const regionId of REGION_IDS) {
-        const size = scoreToStrength(scores[regionId].size)
-        definitionTotal += scoreToStrength(scores[regionId].definition)
-        for (const part of parts) {
-          const influences = part.mesh.morphTargetInfluences
-          if (influences) influences[part.shapeIndex[regionId]] = size
+      for (const part of parts) {
+        const influences = part.mesh.morphTargetInfluences
+        const lines = part.definition.array
+        lines.fill(0)
+        for (const regionId of REGION_IDS) {
+          const defined = definitionStrength(scores[regionId].size, scores[regionId].definition)
+          if (influences) {
+            influences[part.shapeIndex[regionId]] = scoreToStrength(scores[regionId].size)
+            influences[part.definitionIndex[regionId]] = defined
+          }
+          if (defined === 0) continue
+          // Each point shows the lines as far as the muscles that share its skin are defined.
+          const mask = part.masks[regionId]
+          for (let point = 0; point < lines.length; point += 1) {
+            lines[point] = Math.min(1, (lines[point] ?? 0) + (mask[point] ?? 0) * defined)
+          }
         }
-      }
-      // Until the body has a detailed skin, definition is shown for the body as
-      // a whole rather than muscle by muscle.
-      const definition = definitionTotal / REGION_IDS.length
-      for (const material of skinMaterials) {
-        material.roughness = lerp(SOFT_ROUGHNESS, CUT_ROUGHNESS, definition)
+        part.definition.needsUpdate = true
       }
     },
 
@@ -300,6 +362,7 @@ export function createModelBody(root: Object3D): AvatarBody {
       for (const mesh of meshes) mesh.geometry.dispose()
       for (const material of allMaterials) {
         material.map?.dispose()
+        material.normalMap?.dispose()
         material.dispose()
       }
     },
