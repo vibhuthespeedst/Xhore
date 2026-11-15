@@ -4,7 +4,9 @@ What we are building, the order we are building it in, how the parts connect, an
 
 ## Where we are now
 
-*Last updated: 2026-11-14*
+*Last updated: 2026-11-16*
+
+**A change of direction is proposed and is waiting on the owner.** On 2026-11-16 the owner sent a full specification for a 3D fitness avatar evolution platform: an app whose whole point is a 3D copy of your body, started from your photo and details, that your logged workouts, food, weight and sleep slowly reshape. The owner asked for a researched plan before any building (D-063). The specification is kept in [design/vision/avatar-evolution-spec.md](design/vision/avatar-evolution-spec.md) and the plan is [design/plans/2026-11-16-avatar-evolution-master-plan.md](design/plans/2026-11-16-avatar-evolution-master-plan.md). The plan recommends building it on what Xhore already has, in five phases, with the fight parked. Nothing in it is built until the owner answers six questions, Q-18 to Q-23 in [Decision.md](Decision.md). Everything below describes the project as it stands today.
 
 Phase 0, the web prototype, is in progress. The growth engine is built. The prototype page shows a real 3D human body whose muscles grow from the engine's numbers: pick a weekly routine, skip ahead, and the trained muscles get bigger. The body was generated for free with Blender and MPFB by a script, and has a skeleton ready for animation. It has a photographic skin, eyes, eyebrows, eyelashes and hair, better lighting, and it breathes. All 332 automated tests pass.
 
@@ -18,6 +20,8 @@ The owner gave the OK for three.js and for Blender with MPFB on 2026-10-09 (D-03
 
 | What | Why it is needed | Needed for |
 | --- | --- | --- |
+| Answers to Q-18 to Q-23 | They decide whether the avatar evolution platform becomes the main product, what kind of app it is, where data lives, how a photo becomes an avatar, how fast the avatar changes and which muscle list it uses. | Every piece of the master plan |
+| A free Supabase account, later | Sign-in, the database and private photo storage would live there (Q-20). Only the owner can create it. | Piece 1.4 of the master plan |
 | A free Adobe account, later | The largest free set of fight animations, Mixamo, needs a sign-in. Only the owner can do that. | Step 12 |
 
 ## The road map
@@ -27,6 +31,7 @@ The owner gave the OK for three.js and for Blender with MPFB on 2026-10-09 (D-03
 | Phase 0: web prototype | One web page where you log sets, watch the avatar grow, skip ahead a week, fight other avatars and see who tops the leaderboard. No backend, no accounts. | In progress since 2026-10-07 |
 | Later: mobile app | The real app for Android and iOS, built with Expo. | Not started |
 | Later: server | The online side, built with Firebase. | Not started |
+| Proposed: the avatar evolution platform | Five phases: your body on day one; training; food, sleep and recovery; evolution over time; polish and reach. It would replace the two "Later" rows above. | Waiting on Q-18 to Q-23 |
 
 The later phases are described in the owner's architecture doc. They will be broken into steps here when they begin.
 
@@ -251,6 +256,7 @@ Type these in the terminal from the project folder.
 
 Newest first.
 
+- **2026-11-16:** The owner sent a specification for a 3D fitness avatar evolution platform and asked for a proper, researched plan before any building (D-063). Researched it across the web: how a photo can become a 3D body (a free body model from the same family as ours appeared in late 2025, a single-photo method with a commercial licence costs about 2 US cents a scan, and a phone's browser can measure a body from a photo without uploading it); what selfie-to-face services cost now that the best-known one has closed; the published studies on how training volume, effort, protein, calories, sleep and breaks change muscle growth; how body weight and body fat are modelled; similar apps; India's data protection rules; and hosting limits. Wrote the master plan: build on what Xhore has, five phases of fifteen pieces, each ending with something usable on a phone. No code changed. Six questions wait on the owner (Q-18 to Q-23).
 - **2026-11-14:** The owner asked for an avatar on which each muscle becomes visible as it improves, for every muscle. The avatar already grew muscle by muscle, but a grown body was big and smooth: no abs, no line under the chest, nothing that made a muscle "visible". So step 14 was brought forward (D-061) and built (D-062). MPFB's own bodies turned out to be smooth even at their leanest, and its free pack has no muscle detail, so the muscle lines are placed by numbers in a new file, `muscle_lines.py`: 73 bellies and lines, each mirrored onto both sides, covering the chest, abs, ribs, back, shoulders, arms, forearms, thighs and calves. The big bellies are raised as a second shape per muscle, the lines are baked into a picture the skin carries, and the body file now says which skin belongs to which muscle. On the page each of the three fades in with that muscle's own definition, and shows more on a bigger muscle. Checked on the page: after 12 weeks of curls alone the arms show the biceps and forearm while the chest and abs stay smooth; after 36 weeks of everything from Advanced, the body shows abs, chest, shoulders, arms, quads, the spine groove and the lats. 8 new tests, 332 in all. The body file grew from 2.7 MB to 5.1 MB.
 - **2026-11-13, evening:** Built the fight physics by its plan, in the new `games/arena-fight` folder, with 54 new tests. Each check from the design document is a test: a 50 kg beginner's estimated bench, squat and deadlift are 27, 36 and 46 kg; a 75 kg fighter's cross lands with 2,535 N as a beginner, 3,600 N as an intermediate and 4,718 N fully trained, close to the 2,381, 3,722 and 4,800 N measured in boxers. Checked with the new matchup report: an 80 kg advanced fighter's cross does 10.1 damage to a 50 kg beginner and breaks the beginner's guard, while the beginner's cross does 3.0 back. Nothing is on screen yet; the fight's rules and view come next.
 - **2026-11-13, later:** The owner asked for realistic fights: technique and physics decide, but strength counts too, since an untrained 50 kg person cannot lift 80 kg. Researched how real fights work: punch forces of novice, intermediate, elite and Olympic boxers, strength standards by body weight, how much the legs, trunk and arms add to a punch, how a strong neck protects against knockdowns, how fatigue weakens punches, kick speeds and forces, and what UFC results say about weight and reach. Wrote the fight physics as a design document in the format of a game-studio template (D-060), checked its numbers against the research (they land within about 7%), and wrote a step-by-step plan to build it. The owner decided the leaderboard holds one friend group only (D-059). Two new open questions: whether ranked fights between very different weights are adjusted (Q-16), and whether muscle growth should slow to real-life pace (Q-17).
@@ -277,6 +283,8 @@ Newest first.
 - **2026-10-07:** Set up the repository with the `engine` workspace. Built the growth engine rules and a test for every rule. A beginner doing 9 hard sets a week reaches size 50 in week 15, 80 in week 34 and 90 in week 49, which matches the targets in the spec.
 
 ## Next up
+
+First, the owner answers Q-18 to Q-23. If the avatar evolution platform becomes the main product, the list below is replaced by the master plan's Phase 1, starting with the design documents for pieces 1.1 and 1.2.
 
 1. The rest of step 11: rounds, moves in progress, blocking and a computer opponent, with its own design document and plan.
 2. Add the game contract and the game list (step 10).

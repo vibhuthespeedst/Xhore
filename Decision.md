@@ -53,6 +53,37 @@ Q-1, Q-2, Q-3, Q-5, Q-7, Q-8, Q-9, Q-11 and Q-15 are settled. See D-028 to D-031
 - Background: the fight reads a muscle score of 50 as "advanced", which takes about five years of training in real life. With the growth numbers in the spec (D-011), a beginner's trained muscle reaches 50 in 3 to 4 months and 90 in about a year, so in fights everyone would be close to elite strength within a year.
 - Recommendation: keep the current growth until the first fights can be played, then decide with real play whether to slow growth down or to read scores differently in the fight.
 - Needed by: before friends start using the app.
+- Added 2026-11-16: Q-22 below proposes real-life pace as part of the avatar evolution plan. Answering Q-22 settles this one.
+
+Q-18 to Q-23 come from the master plan for the avatar evolution platform, [design/plans/2026-11-16-avatar-evolution-master-plan.md](design/plans/2026-11-16-avatar-evolution-master-plan.md). Nothing in that plan is built until they are answered (D-063).
+
+**Q-18: Does the avatar evolution platform become the main product, with the fight parked?**
+- Background: the owner's specification of 2026-11-16 says the avatar is the product: a 3D copy of your body that your logged training, food, weight and sleep slowly reshape. It does not mention fights or a leaderboard.
+- Recommendation: yes. The fight and the leaderboard are switched off and their code is kept. Sets a player logs count in full, because there are no friends yet to confirm them, so the half-credit rule (D-014) waits with the friends feature.
+- Needed by: before any of the plan is built.
+
+**Q-19: What kind of app is it?**
+- Options: a web app that installs on the phone's home screen, built with Vite and React like the prototype; or Next.js, as the specification suggests.
+- Recommendation: the Vite and React web app, with three.js used directly as now. It can be wrapped into Play Store and App Store apps later without a rewrite, it is lighter on the owner's laptop, free hosting allows commercial use, and the 3D code is already written and tested. This would replace the Expo part of D-002.
+- Needed by: piece 1.1 of the plan.
+
+**Q-20: Where do accounts and data live?**
+- Recommendation: Supabase, a hosted service with sign-in, a Postgres database and private file storage, replacing Firebase from D-002. Until the owner creates the free account, the app keeps everything on the device.
+- Needed by: piece 1.4 of the plan.
+
+**Q-21: How is the avatar made from a photo?**
+- Background: three levels are possible. Level 1 uses no photo: details, a pick from a grid of body types, and sliders. Level 2 reads a front and a side photo on the phone and uploads nothing. Level 3 sends one photo to a cloud AI that builds a 3D body, at about 2 US cents a scan. A face that matches the player's is a separate, costly matter (Q-4).
+- Recommendation: levels 1 and 2 in Phase 1, level 3 in Phase 5, and no face likeness for now.
+- Needed by: piece 1.3 of the plan.
+
+**Q-22: How fast does the avatar change?**
+- Recommendation: real-life pace. A beginner's well-trained muscle goes from 10 to about 18 in three months, about 30 in a year and about 50 in four to five years. Muscle lines, body fat and the after-workout pump change faster and give the quick feedback, and a preview plays the next 90 days. This would replace the growth numbers in D-011 and settle Q-17.
+- Needed by: piece 2.3 of the plan.
+
+**Q-23: Which muscle list?**
+- Background: the specification lists 18 groups. It has one chest where we have three regions, upper and lower abs where we have one, and "upper back" where we have mid back.
+- Recommendation: keep our 19 regions inside, split abs into upper and lower to make 20, and show the chest as one group with its three parts inside the detail panel. This would extend D-010.
+- Needed by: piece 1.2 of the plan.
 
 ## Decided
 
@@ -122,3 +153,4 @@ Entries D-001 to D-018 were copied from the project spec on 2026-10-09 to start 
 | D-060 | 2026-11-13 | Game design follows a game-studio template. Each system gets a design document in `design/gdd/` with its rules, formulas with worked examples, tuning numbers and checks it must pass, and each build gets a step-by-step plan in `design/plans/`. | The owner asked for the template's way of working to be followed and for the fight to be planned. | Active |
 | D-061 | 2026-11-14 | Definition muscle by muscle (step 14) is built now, ahead of the rest of the fight. The fight is still what comes next after it. This replaces the part of D-057 that made step 14 wait. | The owner asked for an avatar on which each muscle becomes visible as it improves: "if I improve maybe my bicep strength then the bicep is visible", for every muscle. | Active |
 | D-062 | 2026-11-14 | Each muscle region shows its own definition on its own skin, in three ways: its big bellies rise as real shape (up to 7 mm), the lines between muscles appear, from one picture of muscle lines that the skin carries, and its skin tightens to a slight sheen. The abs, obliques and lower back also draw the waist in. How strongly a muscle shows all this is its definition times (0.5 + 0.5 × size / 100): half on the smallest muscle and all of it on the biggest. The bellies and lines are placed by numbers in `tools/avatar-pipeline/muscle_lines.py`. The body file now holds, for each region, a size shape, a definition shape and a mask saying which skin is that muscle's. The rules, formulas and tuning numbers are in [design/gdd/muscle-definition.md](design/gdd/muscle-definition.md). This replaces D-048. | A grown body was big but smooth, so no muscle ever became visible. MPFB's bodies are smooth even at their leanest and its free pack has no muscle detail, so the lines had to be made. Placing them by numbers needs no artist and no downloads, and a sculpted picture can replace them later without changing the page's code. Size is part of the strength because definition reaches 100 in about two months, long before size does: without it a slim beginner would have a full six-pack in eight weeks and nothing left to earn. | Active |
+| D-063 | 2026-11-16 | The owner's specification for a 3D fitness avatar evolution platform is kept word for word in [design/vision/avatar-evolution-spec.md](design/vision/avatar-evolution-spec.md). A researched master plan comes before any building: [design/plans/2026-11-16-avatar-evolution-master-plan.md](design/plans/2026-11-16-avatar-evolution-master-plan.md). Nothing in it is built until the owner answers Q-18 to Q-23. | The owner sent the specification and asked for a proper plan first, checked against sources across the internet. | Active |
